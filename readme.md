@@ -1,5 +1,8 @@
 # Willis
-![gif](https://user-images.githubusercontent.com/5473047/80808503-fbef4d80-8bbf-11ea-98d0-0b74498a3afe.gif)
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/5473047/80808503-fbef4d80-8bbf-11ea-98d0-0b74498a3afe.gif" alt="ghost in the shell gif"/>
+</p>
+
 Willis is a lightweight input library for keyboard, mouse and touchscreen events.
 It was designed to communicate directly with display systems whithout relying on
 a particular windowing library or widget toolkit.

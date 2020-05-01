@@ -159,11 +159,16 @@ enum willis_event_code
 enum willis_event_state
 {
 	// movements, scrolling
-	WILLIS_STATE_NONE,
+	WILLIS_STATE_NONE = 0,
 
 	// clicks, typing
 	WILLIS_STATE_PRESS,
 	WILLIS_STATE_RELEASE,
 };
+
+#ifdef WILLIS_DEBUG
+extern char* willis_event_code_names[111];
+extern char* willis_event_state_names[3];
+#endif
 
 #endif

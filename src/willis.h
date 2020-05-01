@@ -3,29 +3,20 @@
 
 #include "willis_events.h"
 
-#include <stdbool.h>
+#ifdef WILLIS_X11
+	#include <xcb/xcb.h>
+	#include <xcb/xkb.h>
+	#include <xkbcommon/xkbcommon-x11.h>
+#endif
 
-// another useful union to keep a clean and uniform API
-// otherwise `the willis_init` function signature would vary
-union willis_display_system
-{
-	int descriptor;
-	void* handle;
-	void* app;
-};
+#include <stdbool.h>
+#include <stdlib.h>
 
 // willis context
 struct willis
 {
-	// display system handle used for registering and
-	// unregistering our input event handler
-	union willis_display_system fd;
-
 	// user callback executed by our event handler after
 	// the translation to willis events is done
-	//
-	// we pass the willis context so it can use the
-	// utf-8 keycode translation if needed
 	void (*callback)(
 		struct willis* willis,
 		enum willis_event_code event_code,
@@ -34,19 +25,32 @@ struct willis
 
 	// user data for callback
 	void* data;
+
+	// utf-8 input string for the user to copy
+	size_t utf8_size;
+	char* utf8_string;
+	bool get_utf8;
+
+	// internal x11-specific structures
+#ifdef WILLIS_X11
+	xcb_connection_t* display_system;
+
+	struct xkb_context* xkb_ctx;
+	int32_t xkb_device_id;
+	uint8_t xkb_event;
+
+	struct xkb_keymap* xkb_keymap;
+    struct xkb_state* xkb_state;
+
+	xcb_xkb_select_events_details_t select_events_details;
+#endif
 };
 
-// translate qwerty-mapped scancode-willis-equivalents to the right utf-8
-// string using the target system's localization mechanism
-void willis_keyboard_utf8(
-	struct willis* willis,
-	enum willis_event_code event_code,
-	char* out);
-
 // register our event handler and store the required user callback
-void willis_init(
+bool willis_init(
 	struct willis* willis,
-	union willis_display_system fd,
+	void* display_system,
+	bool utf8,
 	void (*callback)(
 		struct willis* willis,
 		enum willis_event_code event_code,
@@ -57,6 +61,6 @@ void willis_init(
 // translate the target system's events to willis equivalents
 void willis_handle_events(
 	void* event,
-	void* willis);
+	void* ctx);
 
 #endif

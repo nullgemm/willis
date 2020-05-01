@@ -1,8 +1,8 @@
 # Willis
+![gif](https://user-images.githubusercontent.com/5473047/80808503-fbef4d80-8bbf-11ea-98d0-0b74498a3afe.gif)
 Willis is a lightweight input library for keyboard, mouse and touchscreen events.
 It was designed to communicate directly with display systems whithout relying on
 a particular windowing library or widget toolkit.
-
 Its flexibility makes Willis perfectly suited for use with custom windowing code
 or low-abstraction libraries like [globox](https://github.com/cylgom/globox).
 

@@ -9,6 +9,9 @@ a particular windowing library or widget toolkit.
 Its flexibility makes Willis perfectly suited for use with custom windowing code
 or low-abstraction libraries like [globox](https://github.com/cylgom/globox).
 
+## Warning
+Work-in-progress!
+
 ## Example
 An integration example is provided in [globox](https://github.com/cylgom/globox).
 

@@ -30,6 +30,10 @@ struct willis
 	size_t utf8_size;
 	char* utf8_string;
 	bool get_utf8;
+	
+	// cursor info for the user to copy
+	int16_t mouse_x;
+	int16_t mouse_y;
 
 	// internal x11-specific structures
 #ifdef WILLIS_X11

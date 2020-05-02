@@ -511,13 +511,13 @@ void willis_handle_events(
 		}
 		case XCB_MOTION_NOTIFY:
 		{
-			// TODO save coordinates
-#if 0
 			xcb_motion_notify_event_t* motion;
 			motion = (xcb_motion_notify_event_t*) event;
-#endif
 			event_code = WILLIS_MOUSE_MOTION;
 			event_state = WILLIS_STATE_NONE;
+
+			willis->mouse_x = motion->event_x;
+			willis->mouse_y = motion->event_y;
 
 			break;
 		}

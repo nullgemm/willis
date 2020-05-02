@@ -7,6 +7,7 @@
 	#include <xcb/xcb.h>
 	#include <xcb/xkb.h>
 	#include <xkbcommon/xkbcommon-x11.h>
+	#include <xkbcommon/xkbcommon-compose.h>
 #endif
 
 #include <stdbool.h>
@@ -45,6 +46,10 @@ struct willis
 
 	struct xkb_keymap* xkb_keymap;
     struct xkb_state* xkb_state;
+
+	const char* xkb_locale;
+	struct xkb_compose_table* xkb_compose_table;
+	struct xkb_compose_state* xkb_compose_state;
 
 	xcb_xkb_select_events_details_t select_events_details;
 #endif

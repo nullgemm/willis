@@ -4,11 +4,13 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
 #include <locale.h>
 #include <xcb/xcb.h>
 #include <xcb/xkb.h>
 #include <xkbcommon/xkbcommon-x11.h>
+#include <xkbcommon/xkbcommon-compose.h>
 
 // universal event structure compatible with all xkb events
 // this is actually used in the code example provided with xkb
@@ -241,6 +243,11 @@ static bool willis_select_events(struct willis* willis)
 	return true;
 }
 
+static bool null_or_empty(const char* str)
+{
+	return (str == NULL) || ((*str) == '\0');
+}
+
 bool willis_init(
 	struct willis* willis,
 	void* display_system,
@@ -260,8 +267,27 @@ bool willis_init(
 	willis->utf8_size = 0;
 	willis->get_utf8 = utf8;
 
-	setlocale(LC_ALL, "");
+	// set locale for xkb composition
+	const char* locale = getenv("LC_ALL");
 
+	if (null_or_empty(locale) == true)
+	{
+		locale = getenv("LC_CTYPE");
+
+		if (null_or_empty(locale) == true)
+		{
+			locale = getenv("LANG");
+
+			if (null_or_empty(locale) == true)
+			{
+				locale = "C";
+			}
+		}
+	}
+
+	willis->xkb_locale = locale;
+
+	// initialize xkb
 	int ok;
 
 	ok = xkb_x11_setup_xkb_extension(
@@ -288,12 +314,32 @@ bool willis_init(
 		return false;
 	}
 
+	// initialize compose table (might me NULL)
+	willis->xkb_compose_table = xkb_compose_table_new_from_locale(
+		willis->xkb_ctx,
+		willis->xkb_locale,
+		XKB_COMPOSE_COMPILE_NO_FLAGS);
+
+	// initialize compose state (might me NULL)
+	if (willis->xkb_compose_table != NULL)
+	{
+		willis->xkb_compose_state = xkb_compose_state_new(
+			willis->xkb_compose_table,
+			XKB_COMPOSE_STATE_NO_FLAGS);
+	}
+	else
+	{
+		willis->xkb_compose_state = NULL;
+	}
+
 	willis->xkb_device_id =
 		xkb_x11_get_core_keyboard_device_id(
 			display_system);
 
 	if (willis->xkb_device_id == -1)
 	{
+		xkb_compose_state_unref(willis->xkb_compose_state); // ok to unref if NULL
+		xkb_compose_table_unref(willis->xkb_compose_table); // ok to unref if NULL
 		xkb_context_unref(willis->xkb_ctx);
 		return false;
 	}
@@ -308,6 +354,8 @@ bool willis_init(
 
 	if (keymap_update == false)
 	{
+		xkb_compose_state_unref(willis->xkb_compose_state);
+		xkb_compose_table_unref(willis->xkb_compose_table);
 		xkb_context_unref(willis->xkb_ctx);
 		return false;
 	}
@@ -322,6 +370,8 @@ bool willis_init(
 	{
 		xkb_state_unref(willis->xkb_state);
 		xkb_keymap_unref(willis->xkb_keymap);
+		xkb_compose_state_unref(willis->xkb_compose_state);
+		xkb_compose_table_unref(willis->xkb_compose_table);
 		xkb_context_unref(willis->xkb_ctx);
 		return false;
 	}
@@ -378,16 +428,15 @@ static inline enum willis_event_code willis_translate_button_x11(
 	}
 }
 
-static void willis_utf8_string(struct willis* willis, xkb_keycode_t keycode)
+static void willis_utf8_simple(struct willis* willis, xkb_keycode_t keycode)
 {
-	willis->utf8_size = 1 +
-		xkb_state_key_get_utf8(
-			willis->xkb_state,
-			keycode,
-			NULL,
-			0);
+	willis->utf8_size = xkb_state_key_get_utf8(
+		willis->xkb_state,
+		keycode,
+		NULL,
+		0);
 
-	willis->utf8_string = malloc(willis->utf8_size);
+	willis->utf8_string = malloc(willis->utf8_size + 1);
 
 	if (willis->utf8_string != NULL)
 	{
@@ -395,7 +444,53 @@ static void willis_utf8_string(struct willis* willis, xkb_keycode_t keycode)
 			willis->xkb_state,
 			keycode,
 			willis->utf8_string,
-			willis->utf8_size);
+			willis->utf8_size + 1);
+	}
+}
+
+static void willis_utf8_compose(struct willis* willis, xkb_keycode_t keycode)
+{
+	// get keysym
+	xkb_keysym_t keysym = xkb_state_key_get_one_sym(
+		willis->xkb_state,
+		keycode);
+
+	enum xkb_compose_feed_result result = xkb_compose_state_feed(
+		willis->xkb_compose_state,
+		keysym);
+
+	// compose keysym
+	if (result == XKB_COMPOSE_FEED_ACCEPTED)
+	{
+		// get composition status
+		enum xkb_compose_status status = xkb_compose_state_get_status(
+			willis->xkb_compose_state);
+
+		// print composed utf-8 value
+		if (status == XKB_COMPOSE_COMPOSED)
+		{
+			willis->utf8_size = xkb_compose_state_get_utf8(
+				willis->xkb_compose_state,
+				NULL,
+				0);
+
+			willis->utf8_string = malloc(willis->utf8_size + 1);
+
+			if (willis->utf8_string != NULL)
+			{
+				xkb_compose_state_get_utf8(
+					willis->xkb_compose_state,
+					willis->utf8_string,
+					willis->utf8_size + 1);
+			}
+		}
+		// print simple utf-8 value
+		else if (status == XKB_COMPOSE_NOTHING)
+		{
+			willis_utf8_simple(
+				willis,
+				keycode);
+		}
 	}
 }
 
@@ -468,9 +563,20 @@ void willis_handle_events(
 
 			if (willis->get_utf8 == true)
 			{
-				willis_utf8_string(
-					(struct willis*) willis,
-					(xkb_keycode_t) key_press->detail);
+				// use compose functions if available
+				if (willis->xkb_compose_state != NULL)
+				{
+					willis_utf8_compose(
+						(struct willis*) willis,
+						(xkb_keycode_t) key_press->detail);
+				}
+				// use simple keycode translation otherwise
+				else
+				{
+					willis_utf8_simple(
+						(struct willis*) willis,
+						(xkb_keycode_t) key_press->detail);
+				}
 			}
 
 			break;
@@ -481,13 +587,6 @@ void willis_handle_events(
 			key_release = (xcb_key_release_event_t*) event;
 			event_code = willis_translate_keycode_x11(key_release->detail);
 			event_state = WILLIS_STATE_RELEASE;
-
-			if (willis->get_utf8 == true)
-			{
-				willis_utf8_string(
-					(struct willis*) willis,
-					(xkb_keycode_t) key_release->detail);
-			}
 
 			break;
 		}
@@ -541,6 +640,7 @@ void willis_handle_events(
 		{
 			free(willis->utf8_string);
 			willis->utf8_string = NULL;
+			willis->utf8_size = 0;
 		}
 	}
 }

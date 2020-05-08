@@ -250,7 +250,7 @@ static bool null_or_empty(const char* str)
 
 bool willis_init(
 	struct willis* willis,
-	void* display_system,
+	void* backend_link,
 	bool utf8,
 	void (*callback)(
 		struct willis* willis,
@@ -259,7 +259,7 @@ bool willis_init(
 		void* data),
 	void* data)
 {
-	willis->display_system = (xcb_connection_t*) display_system;
+	willis->display_system = (xcb_connection_t*) backend_link;
 	willis->callback = callback;
 	willis->data = data;
 
@@ -291,7 +291,7 @@ bool willis_init(
 	int ok;
 
 	ok = xkb_x11_setup_xkb_extension(
-		display_system,
+		backend_link,
 		XKB_X11_MIN_MAJOR_XKB_VERSION,
 		XKB_X11_MIN_MINOR_XKB_VERSION,
 		XKB_X11_SETUP_XKB_EXTENSION_NO_FLAGS,
@@ -334,7 +334,7 @@ bool willis_init(
 
 	willis->xkb_device_id =
 		xkb_x11_get_core_keyboard_device_id(
-			display_system);
+			backend_link);
 
 	if (willis->xkb_device_id == -1)
 	{
@@ -399,6 +399,7 @@ static inline enum willis_event_code willis_translate_button_x11(
 	// we must use the static qualifier here because the linker refuses to find
 	// the functions from another translation unit otherwise
 
+	// NTS: under sway a bug swaps the left and middle click...
 	switch (button)
 	{
 		case XCB_BUTTON_INDEX_1:

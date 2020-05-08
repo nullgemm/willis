@@ -10,6 +10,10 @@
 	#include <xkbcommon/xkbcommon-compose.h>
 #endif
 
+#ifdef WILLIS_WAYLAND
+	#include <wayland-client.h>
+#endif
+
 #include <stdbool.h>
 #include <stdlib.h>
 
@@ -53,12 +57,22 @@ struct willis
 
 	xcb_xkb_select_events_details_t select_events_details;
 #endif
+
+	// internal wayland-specific structures
+#ifdef WILLIS_WAYLAND
+	struct wl_seat* wl_seat;
+	struct wl_seat_listener wl_seat_listener;
+	struct wl_pointer_listener wl_pointer_listener;
+	struct wl_keyboard* wl_keyboard;
+	struct wl_pointer* wl_pointer;
+	struct wl_touch* wl_touch;
+#endif
 };
 
 // register our event handler and store the required user callback
 bool willis_init(
 	struct willis* willis,
-	void* display_system,
+	void* backend_link,
 	bool utf8,
 	void (*callback)(
 		struct willis* willis,

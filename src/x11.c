@@ -399,18 +399,17 @@ static inline enum willis_event_code willis_translate_button_x11(
 	// we must use the static qualifier here because the linker refuses to find
 	// the functions from another translation unit otherwise
 
-	// NTS: under sway a bug swaps the left and middle click...
 	switch (button)
 	{
 		case XCB_BUTTON_INDEX_1:
 		{
 			return WILLIS_MOUSE_CLICK_LEFT;
 		}
-		case XCB_BUTTON_INDEX_2:
+		case XCB_BUTTON_INDEX_3:
 		{
 			return WILLIS_MOUSE_CLICK_RIGHT;
 		}
-		case XCB_BUTTON_INDEX_3:
+		case XCB_BUTTON_INDEX_2:
 		{
 			return WILLIS_MOUSE_CLICK_MIDDLE;
 		}

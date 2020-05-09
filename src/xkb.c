@@ -159,13 +159,13 @@ void willis_xkb_init_locale(struct willis* willis)
 
 void willis_xkb_init_compose(struct willis* willis)
 {
-	// initialize compose table (might me NULL)
+	// initialize compose table (might be NULL)
 	willis->xkb_compose_table = xkb_compose_table_new_from_locale(
 		willis->xkb_ctx,
 		willis->xkb_locale,
 		XKB_COMPOSE_COMPILE_NO_FLAGS);
 
-	// initialize compose state (might me NULL)
+	// initialize compose state (might be NULL)
 	if (willis->xkb_compose_table != NULL)
 	{
 		willis->xkb_compose_state = xkb_compose_state_new(

@@ -420,3 +420,33 @@ void willis_handle_events(
 		}
 	}
 }
+
+bool willis_free(struct willis* willis)
+{
+	if (willis->xkb_state != NULL)
+	{
+		xkb_state_unref(willis->xkb_state);
+	}
+
+	if (willis->xkb_keymap != NULL)
+	{
+		xkb_keymap_unref(willis->xkb_keymap);
+	}
+
+	if (willis->xkb_compose_table != NULL)
+	{
+		xkb_compose_table_unref(willis->xkb_compose_table);
+	}
+
+	if (willis->xkb_compose_state != NULL)
+	{
+		xkb_compose_state_unref(willis->xkb_compose_state);
+	}
+
+	if (willis->xkb_ctx != NULL)
+	{
+		xkb_context_unref(willis->xkb_ctx);
+	}
+
+	return true;
+}

@@ -521,3 +521,48 @@ void willis_handle_events(
 
 	wl_seat_add_listener(event, &(willis->wl_seat_listener), willis);
 }
+
+bool willis_free(struct willis* willis)
+{
+	if (willis->xkb_state != NULL)
+	{
+		xkb_state_unref(willis->xkb_state);
+	}
+
+	if (willis->xkb_keymap != NULL)
+	{
+		xkb_keymap_unref(willis->xkb_keymap);
+	}
+
+	if (willis->xkb_compose_table != NULL)
+	{
+		xkb_compose_table_unref(willis->xkb_compose_table);
+	}
+
+	if (willis->xkb_compose_state != NULL)
+	{
+		xkb_compose_state_unref(willis->xkb_compose_state);
+	}
+
+	if (willis->xkb_ctx != NULL)
+	{
+		xkb_context_unref(willis->xkb_ctx);
+	}
+
+	if (willis->wl_seat != NULL)
+	{
+		wl_seat_release(willis->wl_seat);
+	}
+
+	if (willis->wl_pointer != NULL)
+	{
+		wl_pointer_release(willis->wl_pointer);
+	}
+
+	if (willis->wl_keyboard != NULL)
+	{
+		wl_keyboard_release(willis->wl_keyboard);
+	}
+
+	return true;
+}

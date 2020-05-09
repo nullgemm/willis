@@ -98,4 +98,7 @@ void willis_handle_events(
 	void* event,
 	void* ctx);
 
+// close willis and free all resources
+bool willis_free(struct willis* willis);
+
 #endif

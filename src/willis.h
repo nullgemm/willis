@@ -12,6 +12,7 @@
 
 #ifdef WILLIS_WAYLAND
 	#include <wayland-client.h>
+	#include <xkbcommon/xkbcommon.h>
 #endif
 
 #include <stdbool.h>
@@ -45,9 +46,6 @@ struct willis
 	xcb_connection_t* display_system;
 
 	struct xkb_context* xkb_ctx;
-	int32_t xkb_device_id;
-	uint8_t xkb_event;
-
 	struct xkb_keymap* xkb_keymap;
     struct xkb_state* xkb_state;
 
@@ -55,16 +53,30 @@ struct willis
 	struct xkb_compose_table* xkb_compose_table;
 	struct xkb_compose_state* xkb_compose_state;
 
+	int32_t xkb_device_id;
+	uint8_t xkb_event;
+
 	xcb_xkb_select_events_details_t select_events_details;
 #endif
 
 	// internal wayland-specific structures
 #ifdef WILLIS_WAYLAND
 	struct wl_seat* wl_seat;
+
+	struct xkb_context* xkb_ctx;
+	struct xkb_keymap* xkb_keymap;
+	struct xkb_state* xkb_state;
+
+	const char* xkb_locale;
+	struct xkb_compose_table* xkb_compose_table;
+	struct xkb_compose_state* xkb_compose_state;
+
 	struct wl_seat_listener wl_seat_listener;
 	struct wl_pointer_listener wl_pointer_listener;
-	struct wl_keyboard* wl_keyboard;
 	struct wl_pointer* wl_pointer;
+	struct wl_keyboard_listener wl_keyboard_listener;
+	struct wl_keyboard* wl_keyboard;
+	struct wl_touch_listener wl_touch_listener;
 	struct wl_touch* wl_touch;
 #endif
 };

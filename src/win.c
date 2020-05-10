@@ -130,7 +130,7 @@ bool willis_init(
 {
 	willis->callback = callback;
 	willis->data = data;
-	willis->utf8_string = NULL;
+	willis->utf8_string = malloc(5 * (sizeof (char)));
 	willis->utf8_size = 0;
 	willis->get_utf8 = utf8;
 
@@ -193,6 +193,7 @@ void willis_handle_events(
 		}
 		case WM_MOUSEWHEEL:
 		{
+			// mouse wheel steps portable sign reproduction
 			uint8_t bit_length = (8 * (sizeof (WORD)));
 			WORD sign = 1 << (bit_length - 1);
 			WORD param = HIWORD(msg->wParam);
@@ -238,6 +239,42 @@ void willis_handle_events(
 
 			break;
 		}
+		case WM_CHAR:
+		{
+			// utf16 to utf8 conversion
+			uint32_t utf16 = msg->wParam;
+
+			if (utf16 < 0x80)
+			{
+				willis->utf8_string[0] = utf16;
+				willis->utf8_size = 1;
+			}
+			else if (utf16 < 0x800)
+			{
+				willis->utf8_string[0] = 0xC0 | (0x1F & (utf16 >> 6));
+				willis->utf8_string[1] = 0x80 | (0x3F & (utf16 >> 0));
+				willis->utf8_size = 2;
+			}
+			else if (utf16 < 0x10000)
+			{
+				willis->utf8_string[0] = 0xE0 | (0x0F & (utf16 >> 12));
+				willis->utf8_string[1] = 0x80 | (0x3F & (utf16 >> 6));
+				willis->utf8_string[2] = 0x80 | (0x3F & (utf16 >> 0));
+				willis->utf8_size = 3;
+			}
+			else
+			{
+				willis->utf8_string[0] = 0xF0 | (0x07 & (utf16 >> 18));
+				willis->utf8_string[1] = 0x80 | (0x3F & (utf16 >> 12));
+				willis->utf8_string[2] = 0x80 | (0x3F & (utf16 >> 6));
+				willis->utf8_string[3] = 0x80 | (0x3F & (utf16 >> 0));
+				willis->utf8_size = 4;
+			}
+
+			willis->utf8_string[willis->utf8_size] = '\0';
+
+			break;
+		}
 		default:
 		{
 			break;
@@ -250,8 +287,7 @@ void willis_handle_events(
 
 		if (willis->utf8_string != NULL)
 		{
-			free(willis->utf8_string);
-			willis->utf8_string = NULL;
+			willis->utf8_string[0] = '\0';
 			willis->utf8_size = 0;
 		}
 	}
@@ -259,5 +295,7 @@ void willis_handle_events(
 
 bool willis_free(struct willis* willis)
 {
+	free(willis->utf8_string);
+
 	return true;
 }

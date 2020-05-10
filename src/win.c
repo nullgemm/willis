@@ -225,6 +225,16 @@ void willis_handle_events(
 
 			return;
 		}
+		case WM_MOUSEMOVE:
+		{
+			event_code = WILLIS_MOUSE_MOTION;
+			event_state = WILLIS_STATE_NONE;
+
+			willis->mouse_x = LOWORD(msg->lParam);
+			willis->mouse_y = HIWORD(msg->lParam);
+
+			break;
+		}
 		case WM_KEYDOWN:
 		{
 			event_code = win_keycode_table[msg->wParam & 0xFF];
@@ -277,7 +287,7 @@ void willis_handle_events(
 		}
 		default:
 		{
-			break;
+			return;
 		}
 	}
 

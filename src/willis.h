@@ -16,6 +16,7 @@
 #endif
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 // willis context

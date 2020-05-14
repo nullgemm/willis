@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 enum NSEventType
 {
@@ -28,14 +29,34 @@ struct willis_point
 	double y;
 };
 
-struct willis_point (*willis_msg_point)(id*, SEL) =
-	(struct willis_point (*)(id*, SEL)) objc_msgSend;
+struct willis_size
+{
+	double width;
+	double height;
+};
 
+struct willis_rect
+{
+	struct willis_point origin;
+	struct willis_size size;
+};
+
+id (*willis_msg_id)(id, SEL) =
+	(id (*)(id, SEL)) objc_msgSend;
+
+void (*willis_msg_rect)(struct willis_rect*, id, SEL) =
+	(void (*)(struct willis_rect*, id, SEL)) objc_msgSend_stret;
+
+// for some reason the special objc_msgSend_stret returns a zeroed struct here
+struct willis_point (*willis_msg_point)(id, SEL) =
+	(struct willis_point (*)(id, SEL)) objc_msgSend;
+
+// for some reason we have to give these a pointer to their caller instance
 int (*willis_msg_int)(id*, SEL) =
 	(int (*)(id*, SEL)) objc_msgSend;
 
 double (*willis_msg_float)(id*, SEL) =
-	(double (*)(id*, SEL)) objc_msgSend;
+	(double (*)(id*, SEL)) objc_msgSend_fpret;
 
 unsigned long (*willis_msg_type)(id*, SEL) =
 	(unsigned long(*)(id*, SEL)) objc_msgSend;
@@ -127,6 +148,10 @@ void willis_handle_events(
 		}
 		case NSEventTypeScrollWheel:
 		{
+			// it seems that one event is sent for each mouse wheel step
+			// so we can just check the sign to get the direction information
+
+			// TODO check what happens on a tactile mouse
 			event_state = WILLIS_STATE_NONE;
 
 			// thanks apple
@@ -148,16 +173,48 @@ void willis_handle_events(
 		}
 		case NSEventTypeMouseMoved:
 		{
-			event_code = WILLIS_MOUSE_MOTION;
-			event_state = WILLIS_STATE_NONE;
+			// this event is an asynchronous movement notification: it does not
+			// preserve the value of the mouse position at the time of emission
+			// (mouseLocation always holds the current mouse coordinates)
+			//
+			// because of this we simply use the method from NSWindow instead
+			// (since it returns local coordinates) instead of taking the
+			// screen-space value available in the event
+			id window = willis_msg_id(
+				event,
+				sel_getUid("window"));
 
-			struct willis_point point =
-				willis_msg_point(
-					event,
-					sel_getUid("mouseLocation"));
+			id view = willis_msg_id(
+				window,
+				sel_getUid("contentView"));
 
-			willis->mouse_x = point.x;
-			willis->mouse_y = point.y;
+			// we can get this struct the regular way (see declaration)
+			struct willis_rect rect = {0};
+
+			willis_msg_rect(
+				&rect,
+				view,
+				sel_getUid("frame"));
+
+			// but the objective-c runtime breaks here so we do this shit
+			struct willis_point point = willis_msg_point(
+				window,
+				sel_getUid("mouseLocationOutsideOfEventStream"));
+
+			// because why the fuck would apple point that fucking y-axis
+			// in the same fucking direction every other display system does
+			// (we use stric operators to avoid apple trademarked bugs)
+			if ((rect.size.height > point.y - rect.origin.y)
+				&& (point.y > rect.origin.y)
+				&& (rect.size.width > point.x - rect.origin.x)
+				&& (point.x > rect.origin.x))
+			{
+				event_code = WILLIS_MOUSE_MOTION;
+				event_state = WILLIS_STATE_NONE;
+
+				willis->mouse_x = point.x - rect.origin.x;
+				willis->mouse_y = rect.size.height - (point.y - rect.origin.y);
+			}
 
 			break;
 		}

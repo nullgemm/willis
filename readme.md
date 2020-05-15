@@ -19,8 +19,8 @@ The mouse events supported by Willis are the following:
  - Mouse wheel steps (up and down)
  - Mouse movements
 
-As for the keyboard, all PC-104 keys are handled except "ScrollLock" and "Pause".
-Support for them was disabled because they are not available on MacOS.
+As for the keyboard, all PC-104 keys are handled except "ScrollLock" and "Pause",
+which were disabled because they are not available on MacOS.
 
 On this same amazingly compatible platform, pressing "NumLock" will impact the
 keycodes returned by using the numeric keypad in a way we can't work around

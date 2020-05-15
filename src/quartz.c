@@ -164,6 +164,9 @@ struct willis_rect
 id (*willis_msg_id)(id, SEL) =
 	(id (*)(id, SEL)) objc_msgSend;
 
+const char* (*willis_msg_utf8)(id, SEL) =
+	(const char* (*)(id, SEL)) objc_msgSend;
+
 uint16_t (*willis_msg_u16)(id, SEL) =
 	(uint16_t (*)(id, SEL)) objc_msgSend;
 
@@ -392,6 +395,17 @@ void willis_handle_events(
 				event_code = apple_keycode_table[code];
 			}
 
+			id string = willis_msg_id(
+				event,
+				sel_getUid("characters"));
+
+			const char* str = willis_msg_utf8(
+				string,
+				sel_getUid("UTF8String"));
+
+			willis->utf8_string = strdup(str);
+			willis->utf8_size = strlen(str);
+
 			break;
 		}
 		case NSEventTypeKeyUp:
@@ -460,6 +474,14 @@ void willis_handle_events(
 	if (event_code != WILLIS_NONE)
 	{
 		willis->callback(willis, event_code, event_state, willis->data);
+
+		if (willis->utf8_string != NULL)
+		{
+			free(willis->utf8_string);
+
+			willis->utf8_string = NULL;
+			willis->utf8_size = 0;
+		}
 	}
 }
 

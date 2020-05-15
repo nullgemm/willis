@@ -15,8 +15,11 @@ enum NSEventType
 	NSEventTypeLeftMouseUp = 2,
 	NSEventTypeRightMouseDown = 3,
 	NSEventTypeRightMouseUp = 4,
+	NSEventTypeLeftMouseDragged = 6,
+	NSEventTypeRightMouseDragged = 7,
 	NSEventTypeOtherMouseDown = 25,
 	NSEventTypeOtherMouseUp = 26,
+	NSEventTypeOtherMouseDragged = 27,
 	NSEventTypeScrollWheel = 22,
 	NSEventTypeMouseMoved = 5,
 	NSEventTypeKeyDown = 10,
@@ -323,6 +326,9 @@ void willis_handle_events(
 
 			break;
 		}
+		case NSEventTypeLeftMouseDragged:
+		case NSEventTypeRightMouseDragged:
+		case NSEventTypeOtherMouseDragged:
 		case NSEventTypeMouseMoved:
 		{
 			// this event is an asynchronous movement notification: it does not
@@ -331,7 +337,7 @@ void willis_handle_events(
 			//
 			// because of this we simply use the method from NSWindow instead
 			// (since it returns local coordinates) instead of taking the
-			// screen-space value available in the event
+			// screen-space value available in NSEvent
 			id window = willis_msg_id(
 				event,
 				sel_getUid("window"));

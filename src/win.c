@@ -253,6 +253,56 @@ void willis_handle_events(
 
 			break;
 		}
+		case WM_SYSKEYDOWN:
+		{
+			uint8_t code = msg->wParam & 0xFF;
+
+			if (code == VK_MENU)
+			{
+				event_state = WILLIS_STATE_PRESS;
+
+				if ((HIWORD(msg->lParam) & 0x0100) != 0)
+				{
+					event_code = WILLIS_KEY_ALT_RIGHT;
+				}
+				else
+				{
+					event_code = WILLIS_KEY_ALT_LEFT;
+				}
+			}
+			else if (code == VK_F10)
+			{
+				event_state = WILLIS_STATE_PRESS;
+				event_code = WILLIS_KEY_F10;
+			}
+
+			break;
+		}
+		case WM_SYSKEYUP:
+		{
+			uint8_t code = msg->wParam & 0xFF;
+
+			if (code == VK_MENU)
+			{
+				event_state = WILLIS_STATE_RELEASE;
+
+				if ((HIWORD(msg->lParam) & 0x0100) != 0)
+				{
+					event_code = WILLIS_KEY_ALT_RIGHT;
+				}
+				else
+				{
+					event_code = WILLIS_KEY_ALT_LEFT;
+				}
+			}
+			else if (code == VK_F10)
+			{
+				event_state = WILLIS_STATE_RELEASE;
+				event_code = WILLIS_KEY_F10;
+			}
+
+			break;
+		}
 		case WM_CHAR:
 		{
 			// utf16 to utf8 conversion

@@ -20,7 +20,9 @@ static enum willis_event_code win_keycode_table[256] =
 [VK_SHIFT       ] = WILLIS_KEY_SHIFT_LEFT,
 [VK_CONTROL     ] = WILLIS_KEY_CTRL_LEFT,
 [VK_MENU        ] = WILLIS_KEY_ALT_LEFT,
+#if 0
 [VK_PAUSE       ] = WILLIS_KEY_PAUSE,
+#endif
 [VK_CAPITAL     ] = WILLIS_KEY_CAPS_LOCK,
 [VK_ESCAPE      ] = WILLIS_KEY_ESCAPE,
 [VK_SPACE       ] = WILLIS_KEY_SPACE,
@@ -101,7 +103,9 @@ static enum willis_event_code win_keycode_table[256] =
 [VK_F11         ] = WILLIS_KEY_F11,
 [VK_F12         ] = WILLIS_KEY_F12,
 [VK_NUMLOCK     ] = WILLIS_KEY_NUM_LOCK,
+#if 0
 [VK_SCROLL      ] = WILLIS_KEY_SCROLL_LOCK,
+#endif
 [VK_OEM_1       ] = WILLIS_KEY_SEMICOLON,
 [VK_OEM_PLUS    ] = WILLIS_KEY_EQUALS,
 [VK_OEM_COMMA   ] = WILLIS_KEY_COMMA,

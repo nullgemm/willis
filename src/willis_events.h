@@ -120,8 +120,12 @@ enum willis_event_code
 
 	// mostly useless keys
 	WILLIS_KEY_PRINT_SCREEN,
+
+#if 0
+	// these do not even exist on macOS
 	WILLIS_KEY_SCROLL_LOCK,
 	WILLIS_KEY_PAUSE,
+#endif
 
 	WILLIS_KEY_INSERT,
 	WILLIS_KEY_DELETE,

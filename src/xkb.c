@@ -82,8 +82,10 @@ static enum willis_event_code x11_keycode_table[256] =
 		WILLIS_KEY_F9,
 		WILLIS_KEY_F10,
 		WILLIS_KEY_NUM_LOCK,
+#if 0
 		WILLIS_KEY_SCROLL_LOCK,
-		WILLIS_KEY_NUM_7,
+#endif
+[ 79] = WILLIS_KEY_NUM_7,
 		WILLIS_KEY_NUM_8,
 		WILLIS_KEY_NUM_9,
 		WILLIS_KEY_NUM_HYPHEN_MINUS,
@@ -113,7 +115,9 @@ static enum willis_event_code x11_keycode_table[256] =
 		WILLIS_KEY_PAGE_DOWN,
 		WILLIS_KEY_INSERT,
 		WILLIS_KEY_DELETE,
+#if 0
 [127] = WILLIS_KEY_PAUSE,
+#endif
 [133] = WILLIS_KEY_MOD_LEFT,
 		WILLIS_KEY_MOD_RIGHT,
 		WILLIS_KEY_MENU,

@@ -80,6 +80,11 @@ struct willis
 	struct wl_touch_listener wl_touch_listener;
 	struct wl_touch* wl_touch;
 #endif
+
+#if WILLIS_QUARTZ
+	int quartz_old_flags;
+	bool quartz_capslock;
+#endif
 };
 
 // register our event handler and store the required user callback

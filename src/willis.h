@@ -39,8 +39,12 @@ struct willis
 	bool get_utf8;
 	
 	// cursor info for the user to copy
+	int32_t mouse_grab;
 	int16_t mouse_x;
 	int16_t mouse_y;
+	// signed fixed-point (15.16)
+	int32_t diff_x;
+	int32_t diff_y;
 
 	// internal x11-specific structures
 #ifdef WILLIS_X11
@@ -103,6 +107,10 @@ bool willis_init(
 void willis_handle_events(
 	void* event,
 	void* ctx);
+
+// lock mouse to application and get movement deltas
+void willis_mouse_grab(struct willis* willis);
+void willis_mouse_ungrab(struct willis* willis);
 
 // close willis and free all resources
 bool willis_free(struct willis* willis);

@@ -235,6 +235,11 @@ bool willis_init(
 	willis->get_utf8 = utf8;
 	willis->quartz_old_flags = 0;
 	willis->quartz_capslock = false;
+	willis->mouse_grab = false;
+	willis->mouse_x = 0;
+	willis->mouse_y = 0;
+	willis->diff_x = 0;
+	willis->diff_y = 0;
 
 	return true;
 }
@@ -334,47 +339,86 @@ void willis_handle_events(
 		case NSEventTypeOtherMouseDragged:
 		case NSEventTypeMouseMoved:
 		{
-			// this event is an asynchronous movement notification: it does not
-			// preserve the value of the mouse position at the time of emission
-			// (mouseLocation always holds the current mouse coordinates)
-			//
-			// because of this we simply use the method from NSWindow instead
-			// (since it returns local coordinates) instead of taking the
-			// screen-space value available in NSEvent
-			id window = willis_msg_id(
-				event,
-				sel_getUid("window"));
-
-			id view = willis_msg_id(
-				window,
-				sel_getUid("contentView"));
-
-			// we can get this struct the regular way (see declaration)
-			struct willis_rect rect = {0};
-
-			willis_msg_rect(
-				&rect,
-				view,
-				sel_getUid("frame"));
-
-			// but the objective-c runtime breaks here so we do this shit
-			struct willis_point point = willis_msg_point(
-				window,
-				sel_getUid("mouseLocationOutsideOfEventStream"));
-
-			// because why the fuck would apple point that fucking y-axis
-			// in the same fucking direction every other display system does
-			// (we use stric operators to avoid apple trademarked bugs)
-			if ((rect.size.height > point.y - rect.origin.y)
-				&& (point.y > rect.origin.y)
-				&& (rect.size.width > point.x - rect.origin.x)
-				&& (point.x > rect.origin.x))
+			if (willis->mouse_grab == false)
 			{
+				// this event is an asynchronous movement notification: it does not
+				// preserve the value of the mouse position at the time of emission
+				// (mouseLocation always holds the current mouse coordinates)
+				//
+				// because of this we simply use the method from NSWindow instead
+				// (since it returns local coordinates) instead of taking the
+				// screen-space value available in NSEvent
+				id window = willis_msg_id(
+					event,
+					sel_getUid("window"));
+
+				id view = willis_msg_id(
+					window,
+					sel_getUid("contentView"));
+
+				// we can get this struct the regular way (see declaration)
+				struct willis_rect rect = {0};
+
+				willis_msg_rect(
+					&rect,
+					view,
+					sel_getUid("frame"));
+
+				// but the objective-c runtime breaks here so we do this shit
+				struct willis_point point = willis_msg_point(
+					window,
+					sel_getUid("mouseLocationOutsideOfEventStream"));
+
+				// because why the fuck would apple point that fucking y-axis
+				// in the same fucking direction every other display system does
+				// (we use stric operators to avoid apple trademarked bugs)
+				if ((rect.size.height > point.y - rect.origin.y)
+					&& (point.y > rect.origin.y)
+					&& (rect.size.width > point.x - rect.origin.x)
+					&& (point.x > rect.origin.x))
+				{
+					event_code = WILLIS_MOUSE_MOTION;
+					event_state = WILLIS_STATE_NONE;
+
+					willis->mouse_x = point.x - rect.origin.x;
+					willis->mouse_y = rect.size.height - (point.y - rect.origin.y);
+				}
+			}
+			else
+			{
+				double diff_x = willis_msg_float(
+					event,
+					sel_getUid("deltaX"));
+
+				double diff_y = willis_msg_float(
+					event,
+					sel_getUid("deltaY"));
+
+				diff_x *= 0x00010000;
+				diff_y *= 0x00010000;
+
+				if (diff_x >= 0)
+				{
+					diff_x += 0.5;
+				}
+				else
+				{
+					diff_x -= 0.5;
+				}
+
+				if (diff_y >= 0)
+				{
+					diff_y += 0.5;
+				}
+				else
+				{
+					diff_y -= 0.5;
+				}
+
 				event_code = WILLIS_MOUSE_MOTION;
 				event_state = WILLIS_STATE_NONE;
-
-				willis->mouse_x = point.x - rect.origin.x;
-				willis->mouse_y = rect.size.height - (point.y - rect.origin.y);
+				willis->diff_x = diff_x;
+				willis->diff_y = diff_y;
 			}
 
 			break;
@@ -483,6 +527,20 @@ void willis_handle_events(
 			willis->utf8_size = 0;
 		}
 	}
+}
+
+void willis_mouse_grab(struct willis* willis)
+{
+	CGAssociateMouseAndMouseCursorPosition(false);
+	CGDisplayHideCursor(kCGDirectMainDisplay);
+	willis->mouse_grab = true;
+}
+
+void willis_mouse_ungrab(struct willis* willis)
+{
+	CGDisplayShowCursor(kCGDirectMainDisplay);
+	CGAssociateMouseAndMouseCursorPosition(true);
+	willis->mouse_grab = false;
 }
 
 bool willis_free(struct willis* willis)

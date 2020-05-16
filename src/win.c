@@ -339,6 +339,35 @@ void willis_handle_events(
 
 			break;
 		}
+		case WM_INPUT:
+		{
+			RAWINPUT raw = {0};
+			UINT raw_bytes = sizeof (RAWINPUT);
+			HRAWINPUT input = (HRAWINPUT) msg->lParam;
+
+			GetRawInputData(
+				input,
+				RID_INPUT,
+				&raw,
+				&raw_bytes,
+				sizeof (RAWINPUTHEADER));
+
+			if (raw.header.dwType == RIM_TYPEMOUSE)
+			{
+				RAWMOUSE* mouse = &raw.data.mouse;
+
+				if ((mouse->usFlags & 0x01) == MOUSE_MOVE_RELATIVE)
+				{
+					event_code = WILLIS_MOUSE_MOTION;
+					event_state = WILLIS_STATE_NONE;
+
+					willis->diff_x = mouse->lLastX * 0x00010000;
+					willis->diff_y = mouse->lLastY * 0x00010000;
+				}
+			}
+
+			break;
+		}
 		default:
 		{
 			return;
@@ -355,6 +384,63 @@ void willis_handle_events(
 			willis->utf8_size = 0;
 		}
 	}
+}
+
+// this might look like a dirty way to work around the device listing system
+// but these values are actually documented as valid for any mouse in the Winuser.h manual
+// (https://docs.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-rid_device_info_mouse)
+bool willis_mouse_grab(struct willis* willis)
+{
+	// register raw mouse input access
+	HWND hwnd = GetActiveWindow();
+	RAWINPUTDEVICE mouse = {1, 2, 0, hwnd};
+
+	BOOL ok =
+		RegisterRawInputDevices(
+			&mouse,
+			1,
+			sizeof (RAWINPUTDEVICE));
+
+	if (ok == false)
+	{
+		return false;
+	}
+
+	// clip cursor
+	RECT rect;
+
+	GetWindowRect(hwnd, &rect);
+
+	LONG x = (rect.left + rect.right) / 2;
+	LONG y = (rect.top + rect.bottom) / 2;
+
+	rect.left = x - 1;
+	rect.right = x + 1;
+	rect.top = y - 1;
+	rect.bottom = y + 1;
+
+	ClipCursor(&rect);
+
+	willis->mouse_grab = true;
+
+	return true;
+}
+
+bool willis_mouse_ungrab(struct willis* willis)
+{
+	RAWINPUTDEVICE mouse = {1, 2, RIDEV_REMOVE, NULL};
+
+	BOOL ok =
+		RegisterRawInputDevices(
+			&mouse,
+			1,
+			sizeof (RAWINPUTDEVICE));
+
+	ClipCursor(NULL);
+
+	willis->mouse_grab = false;
+
+	return ok;
 }
 
 bool willis_free(struct willis* willis)

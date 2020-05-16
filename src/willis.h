@@ -109,8 +109,8 @@ void willis_handle_events(
 	void* ctx);
 
 // lock mouse to application and get movement deltas
-void willis_mouse_grab(struct willis* willis);
-void willis_mouse_ungrab(struct willis* willis);
+bool willis_mouse_grab(struct willis* willis);
+bool willis_mouse_ungrab(struct willis* willis);
 
 // close willis and free all resources
 bool willis_free(struct willis* willis);

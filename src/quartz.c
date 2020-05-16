@@ -529,18 +529,22 @@ void willis_handle_events(
 	}
 }
 
-void willis_mouse_grab(struct willis* willis)
+bool willis_mouse_grab(struct willis* willis)
 {
 	CGAssociateMouseAndMouseCursorPosition(false);
 	CGDisplayHideCursor(kCGDirectMainDisplay);
 	willis->mouse_grab = true;
+
+	return true;
 }
 
-void willis_mouse_ungrab(struct willis* willis)
+bool willis_mouse_ungrab(struct willis* willis)
 {
 	CGDisplayShowCursor(kCGDirectMainDisplay);
 	CGAssociateMouseAndMouseCursorPosition(true);
 	willis->mouse_grab = false;
+
+	return true;
 }
 
 bool willis_free(struct willis* willis)

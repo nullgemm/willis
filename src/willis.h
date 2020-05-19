@@ -19,6 +19,15 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#ifdef WILLIS_X11
+struct willis_x11_data
+{
+	xcb_connection_t* x11_conn;
+	xcb_window_t x11_root;
+	xcb_window_t x11_window;
+};
+#endif
+
 // willis context
 struct willis
 {
@@ -39,16 +48,18 @@ struct willis
 	bool get_utf8;
 	
 	// cursor info for the user to copy
-	int32_t mouse_grab;
+	bool mouse_grab;
 	int16_t mouse_x;
 	int16_t mouse_y;
-	// signed fixed-point (15.16)
-	int32_t diff_x;
-	int32_t diff_y;
+	// signed fixed-point (Q31.32)
+	int64_t diff_x;
+	int64_t diff_y;
 
 	// internal x11-specific structures
 #ifdef WILLIS_X11
 	xcb_connection_t* display_system;
+	xcb_window_t x11_root;
+	xcb_window_t x11_window;
 
 	struct xkb_context* xkb_ctx;
 	struct xkb_keymap* xkb_keymap;

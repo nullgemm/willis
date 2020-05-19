@@ -9,9 +9,21 @@
 
 #include <xcb/xcb.h>
 #include <xcb/xkb.h>
+#include <xcb/xinput.h>
 #include <xkbcommon/xkbcommon.h>
 #include <xkbcommon/xkbcommon-x11.h>
 #include <xkbcommon/xkbcommon-compose.h>
+
+// we will use pointer aliasing with this custom structure
+// to add the missing `mask` field to `xcb_input_event_mask_t`
+// instead of using the misleading (but common) packing hack thing
+struct willis_xinput_event_mask
+{
+	xcb_input_device_id_t deviceid;
+	uint16_t mask_len;
+	// lol who needs padding
+	uint32_t mask;
+};
 
 // universal event structure compatible with all xkb events
 // this is actually used in the code example provided with xkb
@@ -146,9 +158,13 @@ bool willis_init(
 		void* data),
 	void* data)
 {
-	willis->display_system = (xcb_connection_t*) backend_link;
+	struct willis_x11_data* x11_data = (void*) backend_link;
+	willis->display_system = x11_data->x11_conn;
+	willis->x11_root = x11_data->x11_root;
+	willis->x11_window = x11_data->x11_window;
 	willis->callback = callback;
 	willis->data = data;
+	willis->mouse_grab = false;
 
 	willis->utf8_string = NULL;
 	willis->utf8_size = 0;
@@ -161,7 +177,7 @@ bool willis_init(
 	int ok;
 
 	ok = xkb_x11_setup_xkb_extension(
-		backend_link,
+		willis->display_system,
 		XKB_X11_MIN_MAJOR_XKB_VERSION,
 		XKB_X11_MIN_MINOR_XKB_VERSION,
 		XKB_X11_SETUP_XKB_EXTENSION_NO_FLAGS,
@@ -188,7 +204,7 @@ bool willis_init(
 
 	willis->xkb_device_id =
 		xkb_x11_get_core_keyboard_device_id(
-			backend_link);
+			willis->display_system);
 
 	if (willis->xkb_device_id == -1)
 	{
@@ -396,6 +412,45 @@ void willis_handle_events(
 
 			break;
 		}
+		case XCB_GE_GENERIC:
+		{
+
+			xcb_ge_generic_event_t* generic;
+			generic = (xcb_ge_generic_event_t*) event;
+
+			if (generic->event_type != XCB_INPUT_RAW_MOTION)
+			{
+				break;
+			}
+
+			xcb_input_raw_motion_event_t* raw;
+			raw = (xcb_input_raw_motion_event_t*) event;
+
+			int len =
+				xcb_input_raw_button_press_axisvalues_length(raw);
+
+			xcb_input_fp3232_t* axis =
+				xcb_input_raw_button_press_axisvalues_raw(raw);
+
+			xcb_input_fp3232_t value;
+
+			if (len > 0)
+			{
+				value = axis[0];
+				willis->diff_x = (((int64_t) value.integral) << 32) | value.frac;
+			}
+
+			if (len > 1)
+			{
+				value = axis[1];
+				willis->diff_y = (((int64_t) value.integral) << 32) | value.frac;
+			}
+
+			event_code = WILLIS_MOUSE_MOTION;
+			event_state = WILLIS_STATE_NONE;
+
+			break;
+		}
 		default:
 		{
 			if (event_masked == willis->xkb_event)
@@ -419,6 +474,71 @@ void willis_handle_events(
 			willis->utf8_size = 0;
 		}
 	}
+}
+
+static bool select_events(struct willis* willis, uint32_t mask)
+{
+	xcb_generic_error_t* error;
+
+	// get the xinput device id for the pointer
+	xcb_input_xi_get_client_pointer_cookie_t cookie_pointer;
+	xcb_input_xi_get_client_pointer_reply_t* reply_pointer;
+
+	cookie_pointer = xcb_input_xi_get_client_pointer(
+		willis->display_system,
+		willis->x11_window);
+
+	reply_pointer = xcb_input_xi_get_client_pointer_reply(
+		willis->display_system,
+		cookie_pointer,
+		&error);
+
+	if (error != NULL)
+	{
+		if (reply_pointer != NULL)
+		{
+			free(reply_pointer);
+		}
+
+		return false;
+	}
+
+	xcb_input_device_id_t dev = reply_pointer->deviceid;
+
+	if (reply_pointer != NULL)
+	{
+		free(reply_pointer);
+	}
+
+	// register event
+	struct willis_xinput_event_mask mask_grab =
+	{
+		.deviceid = dev,
+		.mask_len = 1,
+		.mask = mask,
+	};
+
+	xcb_input_xi_select_events(
+		willis->display_system,
+		willis->x11_root,
+		1,
+		(xcb_input_event_mask_t*) &mask_grab);
+
+	return true;
+}
+
+bool willis_mouse_grab(struct willis* willis)
+{
+	willis->mouse_grab = true;
+
+	return select_events(willis, XCB_INPUT_XI_EVENT_MASK_RAW_MOTION);
+}
+
+bool willis_mouse_ungrab(struct willis* willis)
+{
+	willis->mouse_grab = false;
+
+	return select_events(willis, 0);
 }
 
 bool willis_free(struct willis* willis)

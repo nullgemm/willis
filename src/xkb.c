@@ -11,7 +11,7 @@
 #include <xkbcommon/xkbcommon-compose.h>
 
 // sparse LUT for x11 keycode translation
-static enum willis_event_code x11_keycode_table[256] =
+enum willis_event_code x11_keycode_table[256] =
 {
 [  9] = WILLIS_KEY_ESCAPE,
 		WILLIS_KEY_1,

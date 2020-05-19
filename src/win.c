@@ -137,6 +137,7 @@ bool willis_init(
 	willis->utf8_string = malloc(5 * (sizeof (char)));
 	willis->utf8_size = 0;
 	willis->get_utf8 = utf8;
+	willis->mouse_grab = false;
 
 	return true;
 }
@@ -361,8 +362,8 @@ void willis_handle_events(
 					event_code = WILLIS_MOUSE_MOTION;
 					event_state = WILLIS_STATE_NONE;
 
-					willis->diff_x = mouse->lLastX * 0x00010000;
-					willis->diff_y = mouse->lLastY * 0x00010000;
+					willis->diff_x = mouse->lLastX * 0x0000000100000000;
+					willis->diff_y = mouse->lLastY * 0x0000000100000000;
 				}
 			}
 

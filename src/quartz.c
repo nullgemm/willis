@@ -394,8 +394,8 @@ void willis_handle_events(
 					event,
 					sel_getUid("deltaY"));
 
-				diff_x *= 0x00010000;
-				diff_y *= 0x00010000;
+				diff_x *= 0x0000000100000000;
+				diff_y *= 0x0000000100000000;
 
 				if (diff_x >= 0)
 				{

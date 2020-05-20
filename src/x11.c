@@ -531,12 +531,27 @@ bool willis_mouse_grab(struct willis* willis)
 {
 	willis->mouse_grab = true;
 
+	xcb_grab_pointer(
+		willis->display_system,
+		true,
+		willis->x11_root,
+		XCB_NONE,
+		XCB_GRAB_MODE_ASYNC,
+		XCB_GRAB_MODE_ASYNC,
+		willis->x11_window,
+		XCB_CURSOR_NONE, // TODO use invisible cursor
+		XCB_CURRENT_TIME);
+
 	return select_events(willis, XCB_INPUT_XI_EVENT_MASK_RAW_MOTION);
 }
 
 bool willis_mouse_ungrab(struct willis* willis)
 {
 	willis->mouse_grab = false;
+
+	xcb_ungrab_pointer(
+		willis->display_system,
+		XCB_CURRENT_TIME);
 
 	return select_events(willis, 0);
 }

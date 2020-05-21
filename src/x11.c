@@ -10,6 +10,8 @@
 #include <xcb/xcb.h>
 #include <xcb/xkb.h>
 #include <xcb/xinput.h>
+#include <xcb/xfixes.h>
+
 #include <xkbcommon/xkbcommon.h>
 #include <xkbcommon/xkbcommon-x11.h>
 #include <xkbcommon/xkbcommon-compose.h>
@@ -524,12 +526,33 @@ static bool select_events(struct willis* willis, uint32_t mask)
 		1,
 		(xcb_input_event_mask_t*) &mask_grab);
 
+	if (mask == 0)
+	{
+		willis->mouse_grab = false;
+	}
+	else
+	{
+		willis->mouse_grab = true;
+	}
+
 	return true;
 }
 
 bool willis_mouse_grab(struct willis* willis)
 {
-	willis->mouse_grab = true;
+	if (willis->mouse_grab == true)
+	{
+		return false;
+	}
+
+	xcb_xfixes_query_version(
+		willis->display_system,
+		4,
+		0);
+
+	xcb_xfixes_hide_cursor(
+		willis->display_system,
+		willis->x11_window);
 
 	xcb_grab_pointer(
 		willis->display_system,
@@ -547,11 +570,18 @@ bool willis_mouse_grab(struct willis* willis)
 
 bool willis_mouse_ungrab(struct willis* willis)
 {
-	willis->mouse_grab = false;
+	if (willis->mouse_grab == false)
+	{
+		return false;
+	}
 
 	xcb_ungrab_pointer(
 		willis->display_system,
 		XCB_CURRENT_TIME);
+
+	xcb_xfixes_show_cursor(
+		willis->display_system,
+		willis->x11_window);
 
 	return select_events(willis, 0);
 }

@@ -392,6 +392,13 @@ void willis_handle_events(
 // (https://docs.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-rid_device_info_mouse)
 bool willis_mouse_grab(struct willis* willis)
 {
+	if (willis->mouse_grab == true)
+	{
+		return false;
+	}
+
+	ShowCursor(FALSE);
+
 	// register raw mouse input access
 	HWND hwnd = GetActiveWindow();
 	RAWINPUTDEVICE mouse = {1, 2, 0, hwnd};
@@ -429,6 +436,13 @@ bool willis_mouse_grab(struct willis* willis)
 
 bool willis_mouse_ungrab(struct willis* willis)
 {
+	if (willis->mouse_grab == false)
+	{
+		return false;
+	}
+
+	ShowCursor(TRUE);
+
 	RAWINPUTDEVICE mouse = {1, 2, RIDEV_REMOVE, NULL};
 
 	BOOL ok =

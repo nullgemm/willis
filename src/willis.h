@@ -13,6 +13,8 @@
 #ifdef WILLIS_WAYLAND
 	#include <wayland-client.h>
 	#include <xkbcommon/xkbcommon.h>
+	#include "zwp-relative-pointer-protocol.h"
+	#include "zwp-pointer-constraints-protocol.h"
 #endif
 
 #include <stdbool.h>
@@ -25,6 +27,14 @@ struct willis_x11_data
 	xcb_connection_t* x11_conn;
 	xcb_window_t x11_root;
 	xcb_window_t x11_window;
+};
+#endif
+#ifdef WILLIS_WAYLAND
+struct willis_wl_data
+{
+	struct wl_surface* wl_surface;
+	struct zwp_relative_pointer_manager_v1* wl_relative_pointer;
+	struct zwp_pointer_constraints_v1* wl_pointer_constraints;
 };
 #endif
 
@@ -87,9 +97,19 @@ struct willis
 	struct xkb_compose_table* xkb_compose_table;
 	struct xkb_compose_state* xkb_compose_state;
 
+	struct zwp_locked_pointer_v1_listener wl_pointer_locked_listener;
+	struct zwp_relative_pointer_v1_listener wl_pointer_relative_listener;
+
+	struct zwp_relative_pointer_manager_v1* wl_pointer_relative_manager;
+	struct zwp_pointer_constraints_v1* wl_pointer_constraints_manager;
+
+	struct zwp_relative_pointer_v1* wl_pointer_relative;
+	struct zwp_locked_pointer_v1* wl_pointer_locked;
+
 	struct wl_seat_listener wl_seat_listener;
 	struct wl_pointer_listener wl_pointer_listener;
 	struct wl_pointer* wl_pointer;
+	struct wl_surface* wl_surface;
 	struct wl_keyboard_listener wl_keyboard_listener;
 	struct wl_keyboard* wl_keyboard;
 	struct wl_touch_listener wl_touch_listener;

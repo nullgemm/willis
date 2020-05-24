@@ -12,9 +12,19 @@
 #include <sys/mman.h>
 
 #include <wayland-client.h>
+
 #include <xkbcommon/xkbcommon.h>
 #include <xkbcommon/xkbcommon-compose.h>
 #include <linux/input-event-codes.h>
+
+#include "zwp-relative-pointer-protocol.h"
+#include "zwp-pointer-constraints-protocol.h"
+
+union convert
+{
+	int64_t number;
+	uint64_t bits;
+};
 
 void wl_seat_capabilities(
 	void* data,
@@ -419,6 +429,46 @@ static void wl_keyboard_repeat_info()
 
 }
 
+static void relative_listener(
+	void* data,
+	struct zwp_relative_pointer_v1* pointer,
+	uint32_t time_msp,
+	uint32_t time_lsp,
+	wl_fixed_t x,
+	wl_fixed_t y,
+	wl_fixed_t x_linear,
+	wl_fixed_t y_linear)
+{
+	struct willis* willis = (void*) data;
+	union convert convert;
+
+	convert.number = x_linear;
+	willis->diff_x = convert.bits << 24;
+
+	convert.number = y_linear;
+	willis->diff_y = convert.bits << 24;
+
+	willis->callback(
+		willis,
+		WILLIS_MOUSE_MOTION,
+		WILLIS_STATE_NONE,
+		willis->data);
+}
+
+static void locked_listener(
+	void* data,
+	struct zwp_locked_pointer_v1* locked)
+{
+
+}
+
+static void unlocked_listener(
+	void* data,
+	struct zwp_locked_pointer_v1* locked)
+{
+
+}
+
 bool willis_init(
 	struct willis* willis,
 	void* backend_link,
@@ -430,6 +480,27 @@ bool willis_init(
 		void* data),
 	void* data)
 {
+	// relative pointer
+	struct willis_wl_data* wl_data = (void*) backend_link;
+	willis->wl_pointer_relative_manager = wl_data->wl_relative_pointer;
+	willis->wl_pointer_constraints_manager = wl_data->wl_pointer_constraints;
+	willis->wl_surface = wl_data->wl_surface;
+
+	struct zwp_relative_pointer_v1_listener relative =
+	{
+		.relative_motion = relative_listener,
+	};
+
+	struct zwp_locked_pointer_v1_listener locked =
+	{
+		.locked = locked_listener,
+		.unlocked = unlocked_listener,
+	};
+
+	willis->wl_pointer_locked_listener = locked;
+	willis->wl_pointer_relative_listener = relative;
+
+	// advanced keyboard handling
 	willis_xkb_init_locale(willis);
 
 	willis->xkb_ctx = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
@@ -441,6 +512,7 @@ bool willis_init(
 
 	willis_xkb_init_compose(willis);
 
+	// common init
 	willis->callback = callback; // lol what is synchronization
 	willis->data = data;
 	willis->utf8_string = NULL;
@@ -563,6 +635,64 @@ bool willis_free(struct willis* willis)
 	{
 		wl_keyboard_release(willis->wl_keyboard);
 	}
+
+	return true;
+}
+
+bool willis_mouse_grab(struct willis* willis)
+{
+	if (willis->mouse_grab == true)
+	{
+		return false;
+	}
+
+	if (willis->wl_pointer_relative_manager == NULL)
+	{
+		return false;
+	}
+
+	willis->wl_pointer_relative =
+		zwp_relative_pointer_manager_v1_get_relative_pointer(
+			willis->wl_pointer_relative_manager,
+			willis->wl_pointer);
+
+	zwp_relative_pointer_v1_add_listener(
+		willis->wl_pointer_relative,
+		&willis->wl_pointer_relative_listener,
+		willis);
+
+	willis->wl_pointer_locked =
+		zwp_pointer_constraints_v1_lock_pointer(
+			willis->wl_pointer_constraints_manager,
+			willis->wl_surface,
+			willis->wl_pointer,
+			NULL,
+			ZWP_POINTER_CONSTRAINTS_V1_LIFETIME_PERSISTENT);
+
+	zwp_locked_pointer_v1_add_listener(
+		willis->wl_pointer_locked,
+		&willis->wl_pointer_locked_listener,
+		willis);
+
+	willis->mouse_grab = true;
+
+	return true;
+}
+
+bool willis_mouse_ungrab(struct willis* willis)
+{
+	if (willis->mouse_grab == false)
+	{
+		return false;
+	}
+
+	zwp_relative_pointer_v1_destroy(willis->wl_pointer_relative);
+	zwp_locked_pointer_v1_destroy(willis->wl_pointer_locked);
+
+	willis->wl_pointer_relative = NULL;
+	willis->wl_pointer_locked = NULL;
+
+	willis->mouse_grab = false;
 
 	return true;
 }

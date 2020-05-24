@@ -651,6 +651,13 @@ bool willis_mouse_grab(struct willis* willis)
 		return false;
 	}
 
+	wl_pointer_set_cursor(
+		willis->wl_pointer,
+		0,
+		NULL,
+		0,
+		0);
+
 	willis->wl_pointer_relative =
 		zwp_relative_pointer_manager_v1_get_relative_pointer(
 			willis->wl_pointer_relative_manager,

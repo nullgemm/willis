@@ -3,7 +3,11 @@
 
 #include <objc/message.h>
 #include <objc/runtime.h>
-#include <Carbon/Carbon.h> // for virtual keycode enums
+
+// virtual keycode enums
+#include <Carbon/Carbon.h>
+// CGDisplayHideCursor, CGDisplayShowCursor
+#include <CoreGraphics/CoreGraphics.h>
 
 #include <stdbool.h>
 #include <stdint.h>

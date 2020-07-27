@@ -7,7 +7,7 @@ Willis is a lightweight input library for keyboard and mouse events.
 It was designed to communicate directly with display systems whithout relying on
 a particular windowing library or widget toolkit.
 Its flexibility makes it perfectly suited for use with custom windowing code or
-low-abstraction libraries like [globox](https://github.com/cylgom/globox).
+low-abstraction libraries like [globox](https://github.com/nullgemm/globox).
 
 ## Design
 The main design goal was to provide the same API on all supported platforms,
@@ -57,7 +57,7 @@ Forward XCB events to `willis_handle_events`, which will summon your willis call
 More details in XCB'x
 [documentation](https://xcb.freedesktop.org/)
 and in globox'
-[XCB](https://github.com/cylgom/globox/blob/willis/src/globox_x11.c)
+[XCB](https://github.com/nullgemm/globox/blob/willis/src/globox_x11.c)
 backend.
 
 #### Wayland
@@ -70,15 +70,15 @@ Handle `wl_seat_interface` in your global registry callback:
 More details in the wayland online
 [book](https://wayland-book.com)
 and in globox'
-[Wayland](https://github.com/cylgom/globox/blob/willis/src/globox_wayland.c)
+[Wayland](https://github.com/nullgemm/globox/blob/willis/src/globox_wayland.c)
 backend.
 
 #### Windows and MacOS
 Simply pass input events to `willis_handle_events`, which runs your callback.
 More details in globox'
-[Win32](https://github.com/cylgom/globox/blob/willis/src/globox_win.c)
+[Win32](https://github.com/nullgemm/globox/blob/willis/src/globox_win.c)
 and
-[AppKit](https://github.com/cylgom/globox/blob/willis/src/globox_quartz.c)
+[AppKit](https://github.com/nullgemm/globox/blob/willis/src/globox_quartz.c)
 backends.
 
 ### Callback
@@ -103,7 +103,7 @@ void callback(
 All event code and state values can be found in `willis_events.h`.
 You can also use `debug.c` to get their name as regular strings:
 this is how they are logged in the globox
-[example](https://github.com/cylgom/globox/blob/willis/src/main_willis.c).
+[example](https://github.com/nullgemm/globox/blob/willis/src/main_willis.c).
 
 ### Initialization
 After integrating Willis and declaring your callback it is time to call

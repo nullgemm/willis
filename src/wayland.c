@@ -258,6 +258,21 @@ static void wl_keyboard_keymap(
 
 		if (map_shm != MAP_FAILED)
 		{
+			if (willis->xkb_ctx == NULL)
+			{
+				// advanced keyboard handling
+				willis_xkb_init_locale(willis);
+
+				willis->xkb_ctx = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+
+				if (willis->xkb_ctx == NULL)
+				{
+					return;
+				}
+
+				willis_xkb_init_compose(willis);
+			}
+
 			struct xkb_keymap* keymap =
 				xkb_keymap_new_from_string(
 					willis->xkb_ctx,
@@ -500,18 +515,6 @@ bool willis_init(
 	willis->wl_pointer_locked_listener = locked;
 	willis->wl_pointer_relative_listener = relative;
 
-	// advanced keyboard handling
-	willis_xkb_init_locale(willis);
-
-	willis->xkb_ctx = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-
-	if (willis->xkb_ctx == NULL)
-	{
-		return false;
-	}
-
-	willis_xkb_init_compose(willis);
-
 	// common init
 	willis->callback = callback; // lol what is synchronization
 	willis->data = data;
@@ -543,17 +546,6 @@ void willis_handle_events(
 	// (which *will* happen if your computer is not a potato)
 	willis->wl_seat = event;
 	willis->callback = dummy_callback;
-	willis->data = NULL;
-	willis->utf8_string = NULL;
-	willis->utf8_size = 0;
-	willis->get_utf8 = false;
-
-	willis->wl_pointer = NULL;
-	willis->wl_keyboard = NULL;
-	willis->wl_touch = NULL;
-
-	willis->xkb_keymap = NULL;
-	willis->xkb_state = NULL;
 
 	// initialize required structures
 	struct wl_seat_listener seat_listener =

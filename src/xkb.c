@@ -1,9 +1,9 @@
 #include "willis.h"
-
+#include "willis_xkb.h"
 #include "xkb.h"
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 #include <locale.h>
@@ -125,12 +125,7 @@ enum willis_event_code x11_keycode_table[256] =
 
 inline enum willis_event_code willis_translate_keycode_x11(uint8_t keycode)
 {
-	// we must use the static qualifier here because the linker refuses to find
-	// the functions from another translation unit otherwise
-
 	// xcb_keycode_t is a u8, so it shoudn't be able to trigger a buffer overflow
-	// TODO add static test in pre-processor (if possible, must investigate)
-
 	return x11_keycode_table[keycode];
 }
 
@@ -141,6 +136,7 @@ static bool null_or_empty(const char* str)
 
 void willis_xkb_init_locale(struct willis* willis)
 {
+	struct willis_xkb* willis_xkb = &(willis->willis_xkb);
 	const char* locale = getenv("LC_ALL");
 
 	if (null_or_empty(locale) == true)
@@ -158,34 +154,43 @@ void willis_xkb_init_locale(struct willis* willis)
 		}
 	}
 
-	willis->xkb_locale = locale;
+	willis_xkb->xkb_locale = locale;
 }
 
 void willis_xkb_init_compose(struct willis* willis)
 {
+	struct willis_xkb* willis_xkb = &(willis->willis_xkb);
+
 	// initialize compose table (might be NULL)
-	willis->xkb_compose_table = xkb_compose_table_new_from_locale(
-		willis->xkb_ctx,
-		willis->xkb_locale,
+	willis_xkb->xkb_compose_table = xkb_compose_table_new_from_locale(
+		willis_xkb->xkb_ctx,
+		willis_xkb->xkb_locale,
 		XKB_COMPOSE_COMPILE_NO_FLAGS);
 
 	// initialize compose state (might be NULL)
-	if (willis->xkb_compose_table != NULL)
+	if (willis_xkb->xkb_compose_table != NULL)
 	{
-		willis->xkb_compose_state = xkb_compose_state_new(
-			willis->xkb_compose_table,
+		willis_xkb->xkb_compose_state = xkb_compose_state_new(
+			willis_xkb->xkb_compose_table,
 			XKB_COMPOSE_STATE_NO_FLAGS);
 	}
 	else
 	{
-		willis->xkb_compose_state = NULL;
+		willis_xkb->xkb_compose_state = NULL;
 	}
 }
 
 void willis_utf8_simple(struct willis* willis, xkb_keycode_t keycode)
 {
+	struct willis_xkb* willis_xkb = &(willis->willis_xkb);
+
+	if (willis_xkb->xkb_state == NULL)
+	{
+		return;
+	}
+
 	willis->utf8_size = xkb_state_key_get_utf8(
-		willis->xkb_state,
+		willis_xkb->xkb_state,
 		keycode,
 		NULL,
 		0);
@@ -195,7 +200,7 @@ void willis_utf8_simple(struct willis* willis, xkb_keycode_t keycode)
 	if (willis->utf8_string != NULL)
 	{
 		xkb_state_key_get_utf8(
-			willis->xkb_state,
+			willis_xkb->xkb_state,
 			keycode,
 			willis->utf8_string,
 			willis->utf8_size + 1);
@@ -204,13 +209,15 @@ void willis_utf8_simple(struct willis* willis, xkb_keycode_t keycode)
 
 void willis_utf8_compose(struct willis* willis, xkb_keycode_t keycode)
 {
+	struct willis_xkb* willis_xkb = &(willis->willis_xkb);
+
 	// get keysym
 	xkb_keysym_t keysym = xkb_state_key_get_one_sym(
-		willis->xkb_state,
+		willis_xkb->xkb_state,
 		keycode);
 
 	enum xkb_compose_feed_result result = xkb_compose_state_feed(
-		willis->xkb_compose_state,
+		willis_xkb->xkb_compose_state,
 		keysym);
 
 	// compose keysym
@@ -218,13 +225,13 @@ void willis_utf8_compose(struct willis* willis, xkb_keycode_t keycode)
 	{
 		// get composition status
 		enum xkb_compose_status status = xkb_compose_state_get_status(
-			willis->xkb_compose_state);
+			willis_xkb->xkb_compose_state);
 
 		// print composed utf-8 value
 		if (status == XKB_COMPOSE_COMPOSED)
 		{
 			willis->utf8_size = xkb_compose_state_get_utf8(
-				willis->xkb_compose_state,
+				willis_xkb->xkb_compose_state,
 				NULL,
 				0);
 
@@ -233,7 +240,7 @@ void willis_utf8_compose(struct willis* willis, xkb_keycode_t keycode)
 			if (willis->utf8_string != NULL)
 			{
 				xkb_compose_state_get_utf8(
-					willis->xkb_compose_state,
+					willis_xkb->xkb_compose_state,
 					willis->utf8_string,
 					willis->utf8_size + 1);
 			}

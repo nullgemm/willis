@@ -1,26 +1,44 @@
 #define _XOPEN_SOURCE 700
+
 #include "willis.h"
-
 #include "willis_events.h"
+#include "willis_wayland.h"
+#include "willis_xkb.h"
 #include "xkb.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-
-#include <unistd.h>
-#include <sys/mman.h>
-
-#include <wayland-client.h>
-
-#include <xkbcommon/xkbcommon.h>
-#include <xkbcommon/xkbcommon-compose.h>
-#include <linux/input-event-codes.h>
-
 #include "zwp-relative-pointer-protocol.h"
 #include "zwp-pointer-constraints-protocol.h"
 
-union convert
+#include <linux/input-event-codes.h>
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <sys/mman.h>
+#include <unistd.h>
+#include <wayland-client.h>
+#include <xkbcommon/xkbcommon.h>
+#include <xkbcommon/xkbcommon-compose.h>
+
+// Mandatory Dirty Hack ©
+// Bear with me for a second...
+//
+// Dodging the synchronization issues under wayland is hard because
+// there are two points of potential initialization we must take into account.
+//
+// To make willis support multiple contexts we initialize intance mutexes
+// in advance and copy them in the appropriate instance when needed: this should
+// be thread-safe enough because we only overwrite the same mutex data at worst.
+//
+// Once we are able to synchronize it is easy to count the initialization passes
+// and reset the global mutex for the next potential context to use.
+//
+// Of course this means willis contexts can only be initialized sequentially,
+// so context initialization itself is not thread-safe, and cannot be made so.
+static pthread_mutex_t global_willis_mutex = PTHREAD_MUTEX_INITIALIZER;
+static unsigned int global_willis_mutex_passes = 0;
+
+// standard enough
+union willis_convert
 {
 	int64_t number;
 	uint64_t bits;
@@ -32,40 +50,46 @@ void wl_seat_capabilities(
 	uint32_t capabilities)
 {
 	struct willis* willis = data;
+	struct willis_wayland* willis_wayland = &(willis->willis_wayland);
+
 	bool pointer = (capabilities & WL_SEAT_CAPABILITY_POINTER) != 0;
 	bool keyboard = (capabilities & WL_SEAT_CAPABILITY_KEYBOARD) != 0;
 
-	if ((pointer == true) && (willis->wl_pointer == NULL))
+	pthread_mutex_lock(&(willis_wayland->mutex));
+
+	if ((pointer == true) && (willis_wayland->wl_pointer == NULL))
 	{
-		willis->wl_pointer = wl_seat_get_pointer(willis->wl_seat);
+		willis_wayland->wl_pointer = wl_seat_get_pointer(willis_wayland->wl_seat);
 
 		wl_pointer_add_listener(
-			willis->wl_pointer,
-			&(willis->wl_pointer_listener),
+			willis_wayland->wl_pointer,
+			&(willis_wayland->wl_pointer_listener),
 			willis);
 	}
-	else if ((pointer == false) && (willis->wl_pointer != NULL))
+	else if ((pointer == false) && (willis_wayland->wl_pointer != NULL))
 	{
-		wl_pointer_release(willis->wl_pointer);
+		wl_pointer_release(willis_wayland->wl_pointer);
 
-		willis->wl_pointer = NULL;
+		willis_wayland->wl_pointer = NULL;
 	}
 
-	if ((keyboard == true) && (willis->wl_keyboard == NULL))
+	if ((keyboard == true) && (willis_wayland->wl_keyboard == NULL))
 	{
-		willis->wl_keyboard = wl_seat_get_keyboard(willis->wl_seat);
+		willis_wayland->wl_keyboard = wl_seat_get_keyboard(willis_wayland->wl_seat);
 
 		wl_keyboard_add_listener(
-			willis->wl_keyboard,
-			&(willis->wl_keyboard_listener),
+			willis_wayland->wl_keyboard,
+			&(willis_wayland->wl_keyboard_listener),
 			willis);
 	}
-	else if ((keyboard == false) && (willis->wl_keyboard != NULL))
+	else if ((keyboard == false) && (willis_wayland->wl_keyboard != NULL))
 	{
-		wl_keyboard_release(willis->wl_keyboard);
+		wl_keyboard_release(willis_wayland->wl_keyboard);
 
-		willis->wl_keyboard = NULL;
+		willis_wayland->wl_keyboard = NULL;
 	}
+
+	pthread_mutex_unlock(&(willis_wayland->mutex));
 }
 
 void wl_seat_name(
@@ -79,6 +103,9 @@ void wl_seat_name(
 // from here, static functions are willis factorization helpers
 static inline void mouse(struct willis* willis, wl_fixed_t x, wl_fixed_t y)
 {
+	struct willis_wayland* willis_wayland = &(willis->willis_wayland);
+	pthread_mutex_lock(&(willis_wayland->mutex));
+
 	willis->mouse_x = wl_fixed_to_int(x);
 	willis->mouse_y = wl_fixed_to_int(y);
 
@@ -87,6 +114,8 @@ static inline void mouse(struct willis* willis, wl_fixed_t x, wl_fixed_t y)
 		WILLIS_MOUSE_MOTION,
 		WILLIS_STATE_NONE,
 		willis->data);
+
+	pthread_mutex_unlock(&(willis_wayland->mutex));
 }
 
 // from here, static functions are wayland pointer callbacks
@@ -130,8 +159,11 @@ static void wl_pointer_button(
 	uint32_t state)
 {
 	struct willis* willis = data;
+	struct willis_wayland* willis_wayland = &(willis->willis_wayland);
 	enum willis_event_code event_code;
 	enum willis_event_state event_state;
+
+	pthread_mutex_lock(&(willis_wayland->mutex));
 
 	switch (button)
 	{
@@ -171,6 +203,8 @@ static void wl_pointer_button(
 		event_code,
 		event_state,
 		willis->data);
+
+	pthread_mutex_unlock(&(willis_wayland->mutex));
 }
 
 static void wl_pointer_axis(
@@ -211,6 +245,7 @@ static void wl_pointer_axis_discrete(
 	{
 		enum willis_event_code event_code;
 		struct willis* willis = data;
+		struct willis_wayland* willis_wayland = &(willis->willis_wayland);
 		uint32_t max;
 
 		if (discrete < 0)
@@ -224,6 +259,8 @@ static void wl_pointer_axis_discrete(
 			max = discrete;
 		}
 
+		pthread_mutex_lock(&(willis_wayland->mutex));
+
 		for (uint32_t i = 0; i < max; ++i)
 		{
 			willis->callback(
@@ -232,6 +269,8 @@ static void wl_pointer_axis_discrete(
 				WILLIS_STATE_NONE,
 				willis->data);
 		}
+
+		pthread_mutex_unlock(&(willis_wayland->mutex));
 	}
 }
 
@@ -251,6 +290,11 @@ static void wl_keyboard_keymap(
 	uint32_t size)
 {
 	struct willis* willis = data;
+	struct willis_wayland* willis_wayland = &(willis->willis_wayland);
+
+	pthread_mutex_lock(&(willis_wayland->mutex));
+
+	struct willis_xkb* willis_xkb = &(willis->willis_xkb);
 
 	if (format == WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1)
 	{
@@ -258,15 +302,16 @@ static void wl_keyboard_keymap(
 
 		if (map_shm != MAP_FAILED)
 		{
-			if (willis->xkb_ctx == NULL)
+			if (willis_xkb->xkb_ctx == NULL)
 			{
 				// advanced keyboard handling
 				willis_xkb_init_locale(willis);
 
-				willis->xkb_ctx = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+				willis_xkb->xkb_ctx = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
 
-				if (willis->xkb_ctx == NULL)
+				if (willis_xkb->xkb_ctx == NULL)
 				{
+					pthread_mutex_unlock(&(willis_wayland->mutex));
 					return;
 				}
 
@@ -275,7 +320,7 @@ static void wl_keyboard_keymap(
 
 			struct xkb_keymap* keymap =
 				xkb_keymap_new_from_string(
-					willis->xkb_ctx,
+					willis_xkb->xkb_ctx,
 					map_shm,
 					XKB_KEYMAP_FORMAT_TEXT_V1,
 					XKB_KEYMAP_COMPILE_NO_FLAGS);
@@ -285,6 +330,7 @@ static void wl_keyboard_keymap(
 
 			if (keymap == NULL)
 			{
+				pthread_mutex_unlock(&(willis_wayland->mutex));
 				return;
 			}
 
@@ -293,23 +339,26 @@ static void wl_keyboard_keymap(
 			if (state == NULL)
 			{
 				xkb_keymap_unref(keymap);
+				pthread_mutex_unlock(&(willis_wayland->mutex));
 				return;
 			}
 
-			if (willis->xkb_keymap != NULL)
+			if (willis_xkb->xkb_keymap != NULL)
 			{
-				xkb_keymap_unref(willis->xkb_keymap);
+				xkb_keymap_unref(willis_xkb->xkb_keymap);
 			}
 
-			if (willis->xkb_state != NULL)
+			if (willis_xkb->xkb_state != NULL)
 			{
-				xkb_state_unref(willis->xkb_state);
+				xkb_state_unref(willis_xkb->xkb_state);
 			}
 
-			willis->xkb_keymap = keymap;
-			willis->xkb_state = state;
+			willis_xkb->xkb_keymap = keymap;
+			willis_xkb->xkb_state = state;
 		}
 	}
+
+	pthread_mutex_unlock(&(willis_wayland->mutex));
 }
 
 static void wl_keyboard_enter(
@@ -320,11 +369,16 @@ static void wl_keyboard_enter(
 	struct wl_array* keys)
 {
 	struct willis* willis = data;
+	struct willis_wayland* willis_wayland = &(willis->willis_wayland);
+
+	pthread_mutex_lock(&(willis_wayland->mutex));
+
+	struct willis_xkb* willis_xkb = &(willis->willis_xkb);
 	uint32_t* key;
 
 	if (willis->get_utf8 == true)
 	{
-		if (willis->xkb_compose_state != NULL)
+		if (willis_xkb->xkb_compose_state != NULL)
 		{
 			wl_array_for_each(key, keys)
 			{
@@ -360,6 +414,8 @@ static void wl_keyboard_enter(
 				willis->data);
 		}
 	}
+
+	pthread_mutex_unlock(&(willis_wayland->mutex));
 }
 
 static void wl_keyboard_leave(
@@ -380,6 +436,11 @@ static void wl_keyboard_key(
 	uint32_t state)
 {
 	struct willis* willis = data;
+	struct willis_wayland* willis_wayland = &(willis->willis_wayland);
+
+	pthread_mutex_lock(&(willis_wayland->mutex));
+
+	struct willis_xkb* willis_xkb = &(willis->willis_xkb);
 	enum willis_event_code event_code;
 	enum willis_event_state event_state;
 
@@ -389,7 +450,7 @@ static void wl_keyboard_key(
 	{
 		if (willis->get_utf8 == true)
 		{
-			if (willis->xkb_compose_state != NULL)
+			if (willis_xkb->xkb_compose_state != NULL)
 			{
 				willis_utf8_compose(willis, key);
 			}
@@ -416,6 +477,8 @@ static void wl_keyboard_key(
 		willis->utf8_string = NULL;
 		willis->utf8_size = 0;
 	}
+
+	pthread_mutex_unlock(&(willis_wayland->mutex));
 }
 
 static void wl_keyboard_modifiers(
@@ -428,15 +491,25 @@ static void wl_keyboard_modifiers(
 	uint32_t group)
 {
 	struct willis* willis = data;
+	struct willis_wayland* willis_wayland = &(willis->willis_wayland);
 
-	xkb_state_update_mask(
-		willis->xkb_state,
-		mods_depressed,
-		mods_latched,
-		mods_locked,
-		0,
-		0,
-		group);
+	pthread_mutex_lock(&(willis_wayland->mutex));
+
+	struct willis_xkb* willis_xkb = &(willis->willis_xkb);
+
+	if (willis_xkb->xkb_state != NULL)
+	{
+		xkb_state_update_mask(
+			willis_xkb->xkb_state,
+			mods_depressed,
+			mods_latched,
+			mods_locked,
+			0,
+			0,
+			group);
+	}
+
+	pthread_mutex_unlock(&(willis_wayland->mutex));
 }
 
 static void wl_keyboard_repeat_info()
@@ -455,7 +528,11 @@ static void relative_listener(
 	wl_fixed_t y_linear)
 {
 	struct willis* willis = (void*) data;
-	union convert convert;
+	struct willis_wayland* willis_wayland = &(willis->willis_wayland);
+
+	pthread_mutex_lock(&(willis_wayland->mutex));
+
+	union willis_convert convert;
 
 	convert.number = x_linear;
 	willis->diff_x = convert.bits << 24;
@@ -468,6 +545,8 @@ static void relative_listener(
 		WILLIS_MOUSE_MOTION,
 		WILLIS_STATE_NONE,
 		willis->data);
+
+	pthread_mutex_unlock(&(willis_wayland->mutex));
 }
 
 static void locked_listener(
@@ -495,11 +574,50 @@ bool willis_init(
 		void* data),
 	void* data)
 {
-	// relative pointer
-	struct willis_wl_data* wl_data = (void*) backend_link;
-	willis->wl_pointer_relative_manager = wl_data->wl_relative_pointer;
-	willis->wl_pointer_constraints_manager = wl_data->wl_pointer_constraints;
-	willis->wl_surface = wl_data->wl_surface;
+	int ok;
+	struct willis_wayland* willis_wayland = &(willis->willis_wayland);
+	struct willis_data_wayland* willis_data = (void*) backend_link;
+
+	ok = pthread_mutex_lock(&global_willis_mutex);
+
+	if (ok != 0)
+	{
+		return false;
+	}
+
+	++global_willis_mutex_passes;
+
+	if (global_willis_mutex_passes < 2)
+	{
+		ok = pthread_mutex_init(&(willis_wayland->mutex), NULL);
+
+		if (ok != 0)
+		{
+			return false;
+		}
+	}
+
+	ok = pthread_mutex_lock(&(willis_wayland->mutex));
+
+	if (ok != 0)
+	{
+		return false;
+	}
+
+	ok = pthread_mutex_unlock(&global_willis_mutex);
+
+	if (ok != 0)
+	{
+		pthread_mutex_unlock(&(willis_wayland->mutex));
+		return false;
+	}
+
+	willis_wayland->wl_pointer_relative_manager =
+		willis_data->wl_relative_pointer;
+	willis_wayland->wl_pointer_constraints_manager =
+		willis_data->wl_pointer_constraints;
+	willis_wayland->wl_surface =
+		willis_data->wl_surface;
 
 	struct zwp_relative_pointer_v1_listener relative =
 	{
@@ -512,15 +630,54 @@ bool willis_init(
 		.unlocked = unlocked_listener,
 	};
 
-	willis->wl_pointer_locked_listener = locked;
-	willis->wl_pointer_relative_listener = relative;
+	willis_wayland->wl_pointer_locked_listener = locked;
+	willis_wayland->wl_pointer_relative_listener = relative;
 
 	// common init
 	willis->callback = callback; // lol what is synchronization
 	willis->data = data;
+	willis->get_utf8 = utf8;
 	willis->utf8_string = NULL;
 	willis->utf8_size = 0;
-	willis->get_utf8 = utf8;
+	willis->mouse_grab = false;
+	willis->mouse_x = 0;
+	willis->mouse_y = 0;
+	willis->diff_x = 0;
+	willis->diff_y = 0;
+
+	ok = pthread_mutex_unlock(&(willis_wayland->mutex));
+
+	if (ok != 0)
+	{
+		return false;
+	}
+
+	// Wait for the event callback initializer to be called before returning.
+	// This mechanism is provided as a courtesy to the developer to help the
+	// sequential initialization of multiple willis contexts, if needed.
+	unsigned int passes;
+
+	do
+	{
+		ok = pthread_mutex_lock(&global_willis_mutex);
+
+		if (ok != 0)
+		{
+			return false;
+		}
+
+		passes = global_willis_mutex_passes;
+
+		ok = pthread_mutex_unlock(&global_willis_mutex);
+
+		if (ok != 0)
+		{
+			return false;
+		}
+	}
+	while(passes < 2);
+
+	global_willis_mutex_passes = 0;
 
 	return true;
 }
@@ -540,11 +697,24 @@ void willis_handle_events(
 	void* ctx)
 {
 	struct willis* willis = ctx;
+	struct willis_wayland* willis_wayland = &(willis->willis_wayland);
+
+	pthread_mutex_lock(&global_willis_mutex);
+
+	++global_willis_mutex_passes;
+
+	if (global_willis_mutex_passes < 2)
+	{
+		pthread_mutex_init(&(willis_wayland->mutex), NULL);
+	}
+
+	pthread_mutex_lock(&(willis_wayland->mutex));
+	pthread_mutex_unlock(&global_willis_mutex);
 
 	// we must initialize these now to prevent the apocalypse
 	// in case events are processed before willis_init is called
 	// (which *will* happen if your computer is not a potato)
-	willis->wl_seat = event;
+	willis_wayland->wl_seat = event;
 	willis->callback = dummy_callback;
 
 	// initialize required structures
@@ -554,7 +724,7 @@ void willis_handle_events(
 		.name = wl_seat_name,
 	};
 
-	willis->wl_seat_listener = seat_listener;
+	willis_wayland->wl_seat_listener = seat_listener;
 
 	struct wl_pointer_listener pointer_listener =
 	{
@@ -569,7 +739,7 @@ void willis_handle_events(
 		.axis_discrete = wl_pointer_axis_discrete,
 	};
 
-	willis->wl_pointer_listener = pointer_listener;
+	willis_wayland->wl_pointer_listener = pointer_listener;
 
 	struct wl_keyboard_listener keyboard_listener =
 	{
@@ -581,96 +751,104 @@ void willis_handle_events(
 		.repeat_info = wl_keyboard_repeat_info,
 	};
 
-	willis->wl_keyboard_listener = keyboard_listener;
+	willis_wayland->wl_keyboard_listener = keyboard_listener;
 
-	wl_seat_add_listener(event, &(willis->wl_seat_listener), willis);
+	wl_seat_add_listener(event, &(willis_wayland->wl_seat_listener), willis);
+
+	pthread_mutex_unlock(&(willis_wayland->mutex));
 }
 
 bool willis_free(struct willis* willis)
 {
-	if (willis->xkb_state != NULL)
+	struct willis_wayland* willis_wayland = &(willis->willis_wayland);
+	struct willis_xkb* willis_xkb = &(willis->willis_xkb);
+
+	if (willis_xkb->xkb_state != NULL)
 	{
-		xkb_state_unref(willis->xkb_state);
+		xkb_state_unref(willis_xkb->xkb_state);
 	}
 
-	if (willis->xkb_keymap != NULL)
+	if (willis_xkb->xkb_keymap != NULL)
 	{
-		xkb_keymap_unref(willis->xkb_keymap);
+		xkb_keymap_unref(willis_xkb->xkb_keymap);
 	}
 
-	if (willis->xkb_compose_table != NULL)
+	if (willis_xkb->xkb_compose_table != NULL)
 	{
-		xkb_compose_table_unref(willis->xkb_compose_table);
+		xkb_compose_table_unref(willis_xkb->xkb_compose_table);
 	}
 
-	if (willis->xkb_compose_state != NULL)
+	if (willis_xkb->xkb_compose_state != NULL)
 	{
-		xkb_compose_state_unref(willis->xkb_compose_state);
+		xkb_compose_state_unref(willis_xkb->xkb_compose_state);
 	}
 
-	if (willis->xkb_ctx != NULL)
+	if (willis_xkb->xkb_ctx != NULL)
 	{
-		xkb_context_unref(willis->xkb_ctx);
+		xkb_context_unref(willis_xkb->xkb_ctx);
 	}
 
-	if (willis->wl_seat != NULL)
+	if (willis_wayland->wl_seat != NULL)
 	{
-		wl_seat_release(willis->wl_seat);
+		wl_seat_release(willis_wayland->wl_seat);
 	}
 
-	if (willis->wl_pointer != NULL)
+	if (willis_wayland->wl_pointer != NULL)
 	{
-		wl_pointer_release(willis->wl_pointer);
+		wl_pointer_release(willis_wayland->wl_pointer);
 	}
 
-	if (willis->wl_keyboard != NULL)
+	if (willis_wayland->wl_keyboard != NULL)
 	{
-		wl_keyboard_release(willis->wl_keyboard);
+		wl_keyboard_release(willis_wayland->wl_keyboard);
 	}
 
 	return true;
 }
 
+// must be called from the event callback
 bool willis_mouse_grab(struct willis* willis)
 {
+	struct willis_wayland* willis_wayland = &(willis->willis_wayland);
+
 	if (willis->mouse_grab == true)
 	{
 		return false;
 	}
 
-	if (willis->wl_pointer_relative_manager == NULL)
+	if (willis_wayland->wl_pointer_relative_manager == NULL)
 	{
 		return false;
 	}
 
 	wl_pointer_set_cursor(
-		willis->wl_pointer,
+		willis_wayland->wl_pointer,
 		0,
 		NULL,
 		0,
 		0);
 
-	willis->wl_pointer_relative =
+	willis_wayland->wl_pointer_relative =
 		zwp_relative_pointer_manager_v1_get_relative_pointer(
-			willis->wl_pointer_relative_manager,
-			willis->wl_pointer);
+			willis_wayland->wl_pointer_relative_manager,
+			willis_wayland->wl_pointer);
 
 	zwp_relative_pointer_v1_add_listener(
-		willis->wl_pointer_relative,
-		&willis->wl_pointer_relative_listener,
+		willis_wayland->wl_pointer_relative,
+		&willis_wayland->wl_pointer_relative_listener,
 		willis);
 
-	willis->wl_pointer_locked =
+	willis_wayland->wl_pointer_locked =
 		zwp_pointer_constraints_v1_lock_pointer(
-			willis->wl_pointer_constraints_manager,
-			willis->wl_surface,
-			willis->wl_pointer,
+			willis_wayland->wl_pointer_constraints_manager,
+			willis_wayland->wl_surface,
+			willis_wayland->wl_pointer,
 			NULL,
 			ZWP_POINTER_CONSTRAINTS_V1_LIFETIME_PERSISTENT);
 
 	zwp_locked_pointer_v1_add_listener(
-		willis->wl_pointer_locked,
-		&willis->wl_pointer_locked_listener,
+		willis_wayland->wl_pointer_locked,
+		&willis_wayland->wl_pointer_locked_listener,
 		willis);
 
 	willis->mouse_grab = true;
@@ -678,18 +856,21 @@ bool willis_mouse_grab(struct willis* willis)
 	return true;
 }
 
+// must be called from the event callback
 bool willis_mouse_ungrab(struct willis* willis)
 {
+	struct willis_wayland* willis_wayland = &(willis->willis_wayland);
+
 	if (willis->mouse_grab == false)
 	{
 		return false;
 	}
 
-	zwp_relative_pointer_v1_destroy(willis->wl_pointer_relative);
-	zwp_locked_pointer_v1_destroy(willis->wl_pointer_locked);
+	zwp_relative_pointer_v1_destroy(willis_wayland->wl_pointer_relative);
+	zwp_locked_pointer_v1_destroy(willis_wayland->wl_pointer_locked);
 
-	willis->wl_pointer_relative = NULL;
-	willis->wl_pointer_locked = NULL;
+	willis_wayland->wl_pointer_relative = NULL;
+	willis_wayland->wl_pointer_locked = NULL;
 
 	willis->mouse_grab = false;
 

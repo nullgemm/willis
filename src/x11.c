@@ -1,20 +1,19 @@
 #include "willis.h"
-
 #include "willis_events.h"
+#include "willis_x11.h"
+#include "willis_xkb.h"
 #include "xkb.h"
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
-
 #include <xcb/xcb.h>
-#include <xcb/xkb.h>
-#include <xcb/xinput.h>
 #include <xcb/xfixes.h>
-
+#include <xcb/xinput.h>
+#include <xcb/xkb.h>
 #include <xkbcommon/xkbcommon.h>
-#include <xkbcommon/xkbcommon-x11.h>
 #include <xkbcommon/xkbcommon-compose.h>
+#include <xkbcommon/xkbcommon-x11.h>
 
 // we will use pointer aliasing with this custom structure
 // to add the missing `mask` field to `xcb_input_event_mask_t`
@@ -51,11 +50,14 @@ union willis_magic_xkb_event
 
 static bool willis_update_keymap_x11(struct willis* willis)
 {
+	struct willis_x11* willis_x11 = &(willis->willis_x11);
+	struct willis_xkb* willis_xkb = &(willis->willis_xkb);
+
 	struct xkb_keymap* xkb_keymap =
 		xkb_x11_keymap_new_from_device(
-			willis->xkb_ctx,
-			willis->display_system,
-			willis->xkb_device_id,
+			willis_xkb->xkb_ctx,
+			willis_x11->display_system,
+			willis_x11->xkb_device_id,
 			XKB_KEYMAP_COMPILE_NO_FLAGS);
 
 	if (xkb_keymap == NULL)
@@ -66,8 +68,8 @@ static bool willis_update_keymap_x11(struct willis* willis)
 	struct xkb_state* xkb_state =
 		xkb_x11_state_new_from_device(
 			xkb_keymap,
-			willis->display_system,
-			willis->xkb_device_id);
+			willis_x11->display_system,
+			willis_x11->xkb_device_id);
 
 	if (xkb_state == NULL)
 	{
@@ -75,10 +77,10 @@ static bool willis_update_keymap_x11(struct willis* willis)
 		return false;
 	}
 
-	xkb_state_unref(willis->xkb_state);
-	xkb_keymap_unref(willis->xkb_keymap);
-	willis->xkb_keymap = xkb_keymap;
-	willis->xkb_state = xkb_state;
+	xkb_state_unref(willis_xkb->xkb_state);
+	xkb_keymap_unref(willis_xkb->xkb_keymap);
+	willis_xkb->xkb_keymap = xkb_keymap;
+	willis_xkb->xkb_state = xkb_state;
 
 	return true;
 }
@@ -87,11 +89,13 @@ static bool willis_update_keymap_x11(struct willis* willis)
 
 static bool willis_select_events(struct willis* willis)
 {
+	struct willis_x11* willis_x11 = &(willis->willis_x11);
+
 	// x11 variable naming madness
-	willis->select_events_details.affectNewKeyboard =
+	willis_x11->select_events_details.affectNewKeyboard =
 		XCB_XKB_NKN_DETAIL_KEYCODES;
 
-	willis->select_events_details.affectState =
+	willis_x11->select_events_details.affectState =
 		XCB_XKB_STATE_PART_MODIFIER_BASE
 		| XCB_XKB_STATE_PART_MODIFIER_LATCH
 		| XCB_XKB_STATE_PART_MODIFIER_LOCK
@@ -99,12 +103,12 @@ static bool willis_select_events(struct willis* willis)
 		| XCB_XKB_STATE_PART_GROUP_LATCH
 		| XCB_XKB_STATE_PART_GROUP_LOCK;
 
-	// this is only execute once, let's just copy
-	willis->select_events_details.newKeyboardDetails =
-		willis->select_events_details.affectNewKeyboard;
+	// this is only executed once, let's just copy
+	willis_x11->select_events_details.newKeyboardDetails =
+		willis_x11->select_events_details.affectNewKeyboard;
 
-	willis->select_events_details.stateDetails =
-		willis->select_events_details.affectState;
+	willis_x11->select_events_details.stateDetails =
+		willis_x11->select_events_details.affectState;
 
 	// more of it
 	uint16_t events =
@@ -126,17 +130,17 @@ static bool willis_select_events(struct willis* willis)
 
 	// classic xcb function with 321948571 parameters
 	cookie = xcb_xkb_select_events_aux_checked(
-		willis->display_system,
-		willis->xkb_device_id,
+		willis_x11->display_system,
+		willis_x11->xkb_device_id,
 		events,
 		0,
 		0,
 		map_parts,
 		map_parts,
-		&(willis->select_events_details));
+		&(willis_x11->select_events_details));
 
 	error = xcb_request_check(
-		willis->display_system,
+		willis_x11->display_system,
 		cookie);
 
 	if (error != NULL)
@@ -160,17 +164,24 @@ bool willis_init(
 		void* data),
 	void* data)
 {
-	struct willis_x11_data* x11_data = (void*) backend_link;
-	willis->display_system = x11_data->x11_conn;
-	willis->x11_root = x11_data->x11_root;
-	willis->x11_window = x11_data->x11_window;
+	struct willis_x11* willis_x11 = &(willis->willis_x11);
+	struct willis_xkb* willis_xkb = &(willis->willis_xkb);
+	struct willis_data_x11* willis_data = (void*) backend_link;
+
+	willis_x11->display_system = willis_data->x11_conn;
+	willis_x11->x11_root = willis_data->x11_root;
+	willis_x11->x11_window = willis_data->x11_window;
+
 	willis->callback = callback;
 	willis->data = data;
-	willis->mouse_grab = false;
-
+	willis->get_utf8 = utf8;
 	willis->utf8_string = NULL;
 	willis->utf8_size = 0;
-	willis->get_utf8 = utf8;
+	willis->mouse_grab = false;
+	willis->mouse_x = 0;
+	willis->mouse_y = 0;
+	willis->diff_x = 0;
+	willis->diff_y = 0;
 
 	// set locale for xkb composition
 	willis_xkb_init_locale(willis);
@@ -179,13 +190,13 @@ bool willis_init(
 	int ok;
 
 	ok = xkb_x11_setup_xkb_extension(
-		willis->display_system,
+		willis_x11->display_system,
 		XKB_X11_MIN_MAJOR_XKB_VERSION,
 		XKB_X11_MIN_MINOR_XKB_VERSION,
 		XKB_X11_SETUP_XKB_EXTENSION_NO_FLAGS,
 		NULL,
 		NULL,
-		&(willis->xkb_event),
+		&(willis_x11->xkb_event),
 		NULL);
 
 	if (ok == 0)
@@ -193,32 +204,32 @@ bool willis_init(
 		return false;
 	}
 
-	willis->xkb_ctx =
+	willis_xkb->xkb_ctx =
 		xkb_context_new(
 			XKB_CONTEXT_NO_FLAGS);
 
-	if (willis->xkb_ctx == NULL)
+	if (willis_xkb->xkb_ctx == NULL)
 	{
 		return false;
 	}
 
 	willis_xkb_init_compose(willis);
 
-	willis->xkb_device_id =
+	willis_x11->xkb_device_id =
 		xkb_x11_get_core_keyboard_device_id(
-			willis->display_system);
+			willis_x11->display_system);
 
-	if (willis->xkb_device_id == -1)
+	if (willis_x11->xkb_device_id == -1)
 	{
-		xkb_compose_state_unref(willis->xkb_compose_state); // ok to unref if NULL
-		xkb_compose_table_unref(willis->xkb_compose_table); // ok to unref if NULL
-		xkb_context_unref(willis->xkb_ctx);
+		xkb_compose_state_unref(willis_xkb->xkb_compose_state); // ok to unref if NULL
+		xkb_compose_table_unref(willis_xkb->xkb_compose_table); // ok to unref if NULL
+		xkb_context_unref(willis_xkb->xkb_ctx);
 		return false;
 	}
 
 	bool keymap_update;
-	willis->xkb_keymap = NULL;
-	willis->xkb_state = NULL;
+	willis_xkb->xkb_keymap = NULL;
+	willis_xkb->xkb_state = NULL;
 
 	keymap_update =
 		willis_update_keymap_x11(
@@ -226,9 +237,9 @@ bool willis_init(
 
 	if (keymap_update == false)
 	{
-		xkb_compose_state_unref(willis->xkb_compose_state);
-		xkb_compose_table_unref(willis->xkb_compose_table);
-		xkb_context_unref(willis->xkb_ctx);
+		xkb_compose_state_unref(willis_xkb->xkb_compose_state);
+		xkb_compose_table_unref(willis_xkb->xkb_compose_table);
+		xkb_context_unref(willis_xkb->xkb_ctx);
 		return false;
 	}
 
@@ -240,11 +251,11 @@ bool willis_init(
 
 	if (event_selection == false)
 	{
-		xkb_state_unref(willis->xkb_state);
-		xkb_keymap_unref(willis->xkb_keymap);
-		xkb_compose_state_unref(willis->xkb_compose_state);
-		xkb_compose_table_unref(willis->xkb_compose_table);
-		xkb_context_unref(willis->xkb_ctx);
+		xkb_state_unref(willis_xkb->xkb_state);
+		xkb_keymap_unref(willis_xkb->xkb_keymap);
+		xkb_compose_state_unref(willis_xkb->xkb_compose_state);
+		xkb_compose_table_unref(willis_xkb->xkb_compose_table);
+		xkb_context_unref(willis_xkb->xkb_ctx);
 		return false;
 	}
 
@@ -292,10 +303,13 @@ static void willis_handle_xkb(
 	struct willis* willis,
 	xcb_generic_event_t* event)
 {
+	struct willis_x11* willis_x11 = &(willis->willis_x11);
+	struct willis_xkb* willis_xkb = &(willis->willis_xkb);
 	union willis_magic_xkb_event* xkb_event;
+
 	xkb_event = (union willis_magic_xkb_event*) event;
 
-	if (xkb_event->magic.device_id != willis->xkb_device_id)
+	if (xkb_event->magic.device_id != willis_x11->xkb_device_id)
 	{
         return;
 	}
@@ -320,7 +334,7 @@ static void willis_handle_xkb(
 		case XCB_XKB_STATE_NOTIFY:
 		{
 			xkb_state_update_mask(
-				willis->xkb_state,
+				willis_xkb->xkb_state,
 				xkb_event->state.baseMods,
 				xkb_event->state.latchedMods,
 				xkb_event->state.lockedMods,
@@ -341,6 +355,8 @@ void willis_handle_events(
 	enum willis_event_code event_code = WILLIS_NONE;
 	enum willis_event_state event_state;
 	struct willis* willis = (struct willis*) ctx;
+	struct willis_x11* willis_x11 = &(willis->willis_x11);
+	struct willis_xkb* willis_xkb = &(willis->willis_xkb);
 	uint8_t event_masked;
 
 	xcb_event = (xcb_generic_event_t*) event;
@@ -358,7 +374,7 @@ void willis_handle_events(
 			if (willis->get_utf8 == true)
 			{
 				// use compose functions if available
-				if (willis->xkb_compose_state != NULL)
+				if (willis_xkb->xkb_compose_state != NULL)
 				{
 					willis_utf8_compose(
 						(struct willis*) willis,
@@ -455,7 +471,7 @@ void willis_handle_events(
 		}
 		default:
 		{
-			if (event_masked == willis->xkb_event)
+			if (event_masked == willis_x11->xkb_event)
 			{
 				willis_handle_xkb(willis, event);
 			}
@@ -480,6 +496,7 @@ void willis_handle_events(
 
 static bool select_events(struct willis* willis, uint32_t mask)
 {
+	struct willis_x11* willis_x11 = &(willis->willis_x11);
 	xcb_generic_error_t* error;
 
 	// get the xinput device id for the pointer
@@ -487,11 +504,11 @@ static bool select_events(struct willis* willis, uint32_t mask)
 	xcb_input_xi_get_client_pointer_reply_t* reply_pointer;
 
 	cookie_pointer = xcb_input_xi_get_client_pointer(
-		willis->display_system,
-		willis->x11_window);
+		willis_x11->display_system,
+		willis_x11->x11_window);
 
 	reply_pointer = xcb_input_xi_get_client_pointer_reply(
-		willis->display_system,
+		willis_x11->display_system,
 		cookie_pointer,
 		&error);
 
@@ -521,8 +538,8 @@ static bool select_events(struct willis* willis, uint32_t mask)
 	};
 
 	xcb_input_xi_select_events(
-		willis->display_system,
-		willis->x11_root,
+		willis_x11->display_system,
+		willis_x11->x11_root,
 		1,
 		(xcb_input_event_mask_t*) &mask_grab);
 
@@ -540,28 +557,30 @@ static bool select_events(struct willis* willis, uint32_t mask)
 
 bool willis_mouse_grab(struct willis* willis)
 {
+	struct willis_x11* willis_x11 = &(willis->willis_x11);
+
 	if (willis->mouse_grab == true)
 	{
 		return false;
 	}
 
 	xcb_xfixes_query_version(
-		willis->display_system,
+		willis_x11->display_system,
 		4,
 		0);
 
 	xcb_xfixes_hide_cursor(
-		willis->display_system,
-		willis->x11_window);
+		willis_x11->display_system,
+		willis_x11->x11_window);
 
 	xcb_grab_pointer(
-		willis->display_system,
+		willis_x11->display_system,
 		true,
-		willis->x11_root,
+		willis_x11->x11_root,
 		XCB_NONE,
 		XCB_GRAB_MODE_ASYNC,
 		XCB_GRAB_MODE_ASYNC,
-		willis->x11_window,
+		willis_x11->x11_window,
 		XCB_CURSOR_NONE, // TODO use invisible cursor
 		XCB_CURRENT_TIME);
 
@@ -570,47 +589,51 @@ bool willis_mouse_grab(struct willis* willis)
 
 bool willis_mouse_ungrab(struct willis* willis)
 {
+	struct willis_x11* willis_x11 = &(willis->willis_x11);
+
 	if (willis->mouse_grab == false)
 	{
 		return false;
 	}
 
 	xcb_ungrab_pointer(
-		willis->display_system,
+		willis_x11->display_system,
 		XCB_CURRENT_TIME);
 
 	xcb_xfixes_show_cursor(
-		willis->display_system,
-		willis->x11_window);
+		willis_x11->display_system,
+		willis_x11->x11_window);
 
 	return select_events(willis, 0);
 }
 
 bool willis_free(struct willis* willis)
 {
-	if (willis->xkb_state != NULL)
+	struct willis_xkb* willis_xkb = &(willis->willis_xkb);
+
+	if (willis_xkb->xkb_state != NULL)
 	{
-		xkb_state_unref(willis->xkb_state);
+		xkb_state_unref(willis_xkb->xkb_state);
 	}
 
-	if (willis->xkb_keymap != NULL)
+	if (willis_xkb->xkb_keymap != NULL)
 	{
-		xkb_keymap_unref(willis->xkb_keymap);
+		xkb_keymap_unref(willis_xkb->xkb_keymap);
 	}
 
-	if (willis->xkb_compose_table != NULL)
+	if (willis_xkb->xkb_compose_table != NULL)
 	{
-		xkb_compose_table_unref(willis->xkb_compose_table);
+		xkb_compose_table_unref(willis_xkb->xkb_compose_table);
 	}
 
-	if (willis->xkb_compose_state != NULL)
+	if (willis_xkb->xkb_compose_state != NULL)
 	{
-		xkb_compose_state_unref(willis->xkb_compose_state);
+		xkb_compose_state_unref(willis_xkb->xkb_compose_state);
 	}
 
-	if (willis->xkb_ctx != NULL)
+	if (willis_xkb->xkb_ctx != NULL)
 	{
-		xkb_context_unref(willis->xkb_ctx);
+		xkb_context_unref(willis_xkb->xkb_ctx);
 	}
 
 	return true;

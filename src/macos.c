@@ -1,14 +1,11 @@
 #include "willis.h"
 #include "willis_events.h"
+#include "willis_macos.h"
 
+#include <Carbon/Carbon.h> // virtual keycode enums
+#include <CoreGraphics/CoreGraphics.h> // CGDisplayHideCursor, CGDisplayShowCursor
 #include <objc/message.h>
 #include <objc/runtime.h>
-
-// virtual keycode enums
-#include <Carbon/Carbon.h>
-// CGDisplayHideCursor, CGDisplayShowCursor
-#include <CoreGraphics/CoreGraphics.h>
-
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -41,7 +38,7 @@ enum NSEventModifierFlags
 	NSEventModifierFlagCommand = 1 << 20,
 };
 
-static enum willis_event_code apple_keycode_table[256] =
+static enum willis_event_code macos_keycode_table[256] =
 {
 [kVK_ANSI_A             ] = WILLIS_KEY_A,
 [kVK_ANSI_S             ] = WILLIS_KEY_S,
@@ -204,9 +201,9 @@ static inline void send_system_keys(
 	enum willis_event_state event_state;
 	enum willis_event_code event_code;
 
-	if (lone != (willis->quartz_old_flags & comparison))
+	if (lone != (willis->willis_macos.willis_macos_old_flags & comparison))
 	{
-		event_code = apple_keycode_table[code];
+		event_code = macos_keycode_table[code];
 
 		if (lone != 0)
 		{
@@ -232,13 +229,14 @@ bool willis_init(
 		void* data),
 	void* data)
 {
+	willis->willis_macos.willis_macos_old_flags = 0;
+	willis->willis_macos.willis_macos_capslock = false;
+
 	willis->callback = callback;
 	willis->data = data;
+	willis->get_utf8 = utf8;
 	willis->utf8_string = NULL;
 	willis->utf8_size = 0;
-	willis->get_utf8 = utf8;
-	willis->quartz_old_flags = 0;
-	willis->quartz_capslock = false;
 	willis->mouse_grab = false;
 	willis->mouse_x = 0;
 	willis->mouse_y = 0;
@@ -440,7 +438,7 @@ void willis_handle_events(
 					sel_getUid("keyCode"));
 
 				event_state = WILLIS_STATE_PRESS;
-				event_code = apple_keycode_table[code];
+				event_code = macos_keycode_table[code];
 			}
 
 			id string = willis_msg_id(
@@ -469,7 +467,7 @@ void willis_handle_events(
 					sel_getUid("keyCode"));
 
 				event_state = WILLIS_STATE_RELEASE;
-				event_code = apple_keycode_table[code];
+				event_code = macos_keycode_table[code];
 			}
 
 			break;
@@ -485,15 +483,15 @@ void willis_handle_events(
 				sel_getUid("keyCode"));
 
 			if ((flags & NSEventModifierFlagCapsLock)
-				!= (willis->quartz_old_flags & NSEventModifierFlagCapsLock))
+				!= (willis->willis_macos.willis_macos_old_flags & NSEventModifierFlagCapsLock))
 			{
 				willis->callback(
 					willis,
-					apple_keycode_table[code],
+					macos_keycode_table[code],
 					WILLIS_STATE_PRESS,
 					willis->data);
 
-				willis->quartz_capslock = true;
+				willis->willis_macos.willis_macos_capslock = true;
 			}
 
 			send_system_keys(willis, flags, NSEventModifierFlagShift, code);
@@ -501,18 +499,18 @@ void willis_handle_events(
 			send_system_keys(willis, flags, NSEventModifierFlagOption, code);
 			send_system_keys(willis, flags, NSEventModifierFlagCommand, code);
 
-			willis->quartz_old_flags = flags;
+			willis->willis_macos.willis_macos_old_flags = flags;
 
 			return;
 		}
 		case NSEventTypeSystemDefined:
 		{
-			if (willis->quartz_capslock == true)
+			if (willis->willis_macos.willis_macos_capslock == true)
 			{
 				event_state = WILLIS_STATE_RELEASE;
-				event_code = apple_keycode_table[kVK_CapsLock];
+				event_code = macos_keycode_table[kVK_CapsLock];
 
-				willis->quartz_capslock = false;
+				willis->willis_macos.willis_macos_capslock = false;
 			}
 
 			break;

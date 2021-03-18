@@ -2,17 +2,17 @@
 #include "willis_events.h"
 
 #include <stdbool.h>
-#include <stdlib.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <windows.h>
 
-union mixed_param
+union willis_mixed_param
 {
 	uint64_t u;
 	int64_t s;
 };
 
-static enum willis_event_code win_keycode_table[256] =
+static enum willis_event_code windows_keycode_table[256] =
 {
 [VK_BACK        ] = WILLIS_KEY_BACKSPACE,
 [VK_TAB         ] = WILLIS_KEY_TAB,
@@ -134,10 +134,14 @@ bool willis_init(
 {
 	willis->callback = callback;
 	willis->data = data;
+	willis->get_utf8 = utf8;
 	willis->utf8_string = malloc(5 * (sizeof (char)));
 	willis->utf8_size = 0;
-	willis->get_utf8 = utf8;
 	willis->mouse_grab = false;
+	willis->mouse_x = 0;
+	willis->mouse_y = 0;
+	willis->diff_x = 0;
+	willis->diff_y = 0;
 
 	return true;
 }
@@ -203,7 +207,7 @@ void willis_handle_events(
 			WORD sign = 1 << (bit_length - 1);
 			WORD param = HIWORD(msg->wParam);
 
-			union mixed_param mixed_param;
+			union willis_mixed_param mixed_param;
 			mixed_param.u = param;
 
 			if ((param & sign) != sign)
@@ -242,14 +246,14 @@ void willis_handle_events(
 		}
 		case WM_KEYDOWN:
 		{
-			event_code = win_keycode_table[msg->wParam & 0xFF];
+			event_code = windows_keycode_table[msg->wParam & 0xFF];
 			event_state = WILLIS_STATE_PRESS;
 
 			break;
 		}
 		case WM_KEYUP:
 		{
-			event_code = win_keycode_table[msg->wParam & 0xFF];
+			event_code = windows_keycode_table[msg->wParam & 0xFF];
 			event_state = WILLIS_STATE_RELEASE;
 
 			break;

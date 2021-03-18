@@ -1,6 +1,7 @@
-#ifdef WILLIS_DEBUG
 #ifndef H_WILLIS_DEBUG
 #define H_WILLIS_DEBUG
+
+#ifdef WILLIS_DEBUG
 
 #include "willis_events.h"
 
@@ -129,4 +130,5 @@ char* willis_event_state_names[3] =
 };
 
 #endif
+
 #endif

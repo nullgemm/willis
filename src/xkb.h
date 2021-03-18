@@ -1,9 +1,9 @@
-#ifndef WILLIS_XKB
-#define WILLIS_XKB
+#ifndef H_WILLIS_XKB
+#define H_WILLIS_XKB
 
 #include "willis.h"
 
-#include <stdbool.h>
+#include <stdint.h>
 #include <xkbcommon/xkbcommon.h>
 
 enum willis_event_code willis_translate_keycode_x11(uint8_t keycode);

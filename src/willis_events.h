@@ -1,5 +1,5 @@
-#ifndef H_WILLIS_EVENTS
-#define H_WILLIS_EVENTS
+#ifndef H_WILLIS_INTERNAL_EVENTS
+#define H_WILLIS_INTERNAL_EVENTS
 
 // willis tells you wether keys are pressed or released because this is what
 // display system events actually tell us, but it is your duty to retain

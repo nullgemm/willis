@@ -128,6 +128,13 @@ static void wl_pointer_enter(
 	wl_fixed_t surface_x,
 	wl_fixed_t surface_y)
 {
+	struct willis* willis = data;
+	struct willis_wayland* willis_wayland = &(willis->willis_wayland);
+
+	willis_wayland->callback_serial(
+		willis_wayland->callback_serial_data,
+		serial);
+
 	mouse(data, surface_x, surface_y);
 }
 
@@ -137,7 +144,12 @@ static void wl_pointer_leave(
 	uint32_t serial,
 	struct wl_surface* surface)
 {
+	struct willis* willis = data;
+	struct willis_wayland* willis_wayland = &(willis->willis_wayland);
 
+	willis_wayland->callback_serial(
+		willis_wayland->callback_serial_data,
+		serial);
 }
 
 static void wl_pointer_motion(
@@ -164,6 +176,10 @@ static void wl_pointer_button(
 	enum willis_event_state event_state;
 
 	pthread_mutex_lock(&(willis_wayland->mutex));
+
+	willis_wayland->callback_serial(
+		willis_wayland->callback_serial_data,
+		serial);
 
 	switch (button)
 	{
@@ -373,6 +389,10 @@ static void wl_keyboard_enter(
 
 	pthread_mutex_lock(&(willis_wayland->mutex));
 
+	willis_wayland->callback_serial(
+		willis_wayland->callback_serial_data,
+		serial);
+
 	struct willis_xkb* willis_xkb = &(willis->willis_xkb);
 	uint32_t* key;
 
@@ -424,7 +444,12 @@ static void wl_keyboard_leave(
 	uint32_t serial,
 	struct wl_surface* surface)
 {
+	struct willis* willis = data;
+	struct willis_wayland* willis_wayland = &(willis->willis_wayland);
 
+	willis_wayland->callback_serial(
+		willis_wayland->callback_serial_data,
+		serial);
 }
 
 static void wl_keyboard_key(
@@ -439,6 +464,10 @@ static void wl_keyboard_key(
 	struct willis_wayland* willis_wayland = &(willis->willis_wayland);
 
 	pthread_mutex_lock(&(willis_wayland->mutex));
+
+	willis_wayland->callback_serial(
+		willis_wayland->callback_serial_data,
+		serial);
 
 	struct willis_xkb* willis_xkb = &(willis->willis_xkb);
 	enum willis_event_code event_code;
@@ -494,6 +523,10 @@ static void wl_keyboard_modifiers(
 	struct willis_wayland* willis_wayland = &(willis->willis_wayland);
 
 	pthread_mutex_lock(&(willis_wayland->mutex));
+
+	willis_wayland->callback_serial(
+		willis_wayland->callback_serial_data,
+		serial);
 
 	struct willis_xkb* willis_xkb = &(willis->willis_xkb);
 
@@ -618,6 +651,10 @@ bool willis_init(
 		willis_data->wl_pointer_constraints;
 	willis_wayland->wl_surface =
 		willis_data->wl_surface;
+	willis_wayland->callback_serial =
+		willis_data->callback_serial;
+	willis_wayland->callback_serial_data =
+		willis_data->callback_serial_data;
 
 	struct zwp_relative_pointer_v1_listener relative =
 	{

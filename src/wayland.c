@@ -913,3 +913,8 @@ bool willis_mouse_ungrab(struct willis* willis)
 
 	return true;
 }
+
+struct wl_pointer* willis_get_wl_pointer(struct willis* willis)
+{
+	return willis->willis_wayland.wl_pointer;
+}

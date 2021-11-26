@@ -9,6 +9,7 @@
 #elif defined(WILLIS_WAYLAND)
 	#include "willis_wayland.h"
 	#include "willis_xkb.h"
+	#include <wayland-client.h>
 #elif defined(WILLIS_MACOS)
 	#include "willis_macos.h"
 #endif
@@ -86,5 +87,9 @@ int16_t willis_get_mouse_x(struct willis* willis);
 int16_t willis_get_mouse_y(struct willis* willis);
 int64_t willis_get_diff_x(struct willis* willis);
 int64_t willis_get_diff_y(struct willis* willis);
+
+#if defined(WILLIS_WAYLAND)
+struct wl_pointer* willis_get_wl_pointer(struct willis* willis);
+#endif
 
 #endif

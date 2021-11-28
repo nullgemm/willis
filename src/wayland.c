@@ -825,11 +825,6 @@ bool willis_free(struct willis* willis)
 		xkb_context_unref(willis_xkb->xkb_ctx);
 	}
 
-	if (willis_wayland->wl_seat != NULL)
-	{
-		wl_seat_release(willis_wayland->wl_seat);
-	}
-
 	if (willis_wayland->wl_pointer != NULL)
 	{
 		wl_pointer_release(willis_wayland->wl_pointer);

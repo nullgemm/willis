@@ -119,7 +119,6 @@ static inline void mouse(struct willis* willis, wl_fixed_t x, wl_fixed_t y)
 }
 
 // from here, static functions are wayland pointer callbacks
-// TODO support serials ?
 static void wl_pointer_enter(
 	void* data,
 	struct wl_pointer* wl_pointer,

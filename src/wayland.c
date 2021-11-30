@@ -222,16 +222,6 @@ static void wl_pointer_button(
 	pthread_mutex_unlock(&(willis_wayland->mutex));
 }
 
-static void wl_pointer_axis(
-	void* data,
-	struct wl_pointer* wl_pointer,
-	uint32_t time,
-	uint32_t axis,
-	wl_fixed_t value)
-{
-	// high-res axes are not supported by willis
-}
-
 static void wl_pointer_axis_source(
 	void* data,
 	struct wl_pointer* wl_pointer,
@@ -287,6 +277,28 @@ static void wl_pointer_axis_discrete(
 
 		pthread_mutex_unlock(&(willis_wayland->mutex));
 	}
+}
+
+static void wl_pointer_axis(
+	void* data,
+	struct wl_pointer* wl_pointer,
+	uint32_t time,
+	uint32_t axis,
+	wl_fixed_t value)
+{
+	// high-res axes are not supported by willis
+	int32_t discrete;
+
+	if (value > 0)
+	{
+		discrete = 1;
+	}
+	else
+	{
+		discrete = -1;
+	}
+
+	wl_pointer_axis_discrete(data, wl_pointer, axis, discrete);
 }
 
 static void wl_pointer_frame()

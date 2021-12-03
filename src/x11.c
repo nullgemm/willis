@@ -481,7 +481,7 @@ void willis_handle_events(
 	}
 
 	// execute user callback
-	if (event_code != WILLIS_NONE)
+	if ((willis->callback != NULL) && (event_code != WILLIS_NONE))
 	{
 		willis->callback(willis, event_code, event_state, willis->data);
 

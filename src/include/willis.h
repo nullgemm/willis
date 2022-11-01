@@ -18,6 +18,20 @@ enum willis_error
 	WILLIS_ERROR_EVENT_CODE_INVALID,
 	WILLIS_ERROR_EVENT_STATE_INVALID,
 
+	WILLIS_ERROR_X11_XFIXES_VERSION,
+	WILLIS_ERROR_X11_XFIXES_HIDE,
+	WILLIS_ERROR_X11_XFIXES_SHOW,
+	WILLIS_ERROR_X11_GRAB,
+	WILLIS_ERROR_X11_UNGRAB,
+	WILLIS_ERROR_X11_XINPUT_SELECT_EVENTS,
+	WILLIS_ERROR_X11_XINPUT_GET_POINTER,
+	WILLIS_ERROR_X11_XKB_SETUP,
+	WILLIS_ERROR_X11_XKB_DEVICE_GET,
+	WILLIS_ERROR_X11_XKB_KEYMAP_NEW,
+	WILLIS_ERROR_X11_XKB_STATE_NEW,
+	WILLIS_ERROR_X11_XKB_SELECT_EVENTS,
+	WILLIS_ERROR_XKB_CONTEXT_NEW,
+
 	WILLIS_ERROR_COUNT,
 };
 
@@ -201,11 +215,6 @@ struct willis_event_info
 	int mouse_y;
 	int64_t diff_x; // signed fixed-point (Q31.32)
 	int64_t diff_y; // signed fixed-point (Q31.32)
-
-	// whether the utf-8 input string is available
-	bool utf8_available;
-	// whether the mouse is held captive by the window
-	bool mouse_grabbed;
 };
 
 struct willis_config_backend
@@ -221,17 +230,17 @@ struct willis_config_backend
 		void* data,
 		struct willis_error_info* error);
 
-	bool (*handle_event)(
+	void (*handle_event)(
 		struct willis* context,
 		void* event,
 		struct willis_event_info* event_info,
 		struct willis_error_info* error);
 
-	void (*mouse_grab)(
+	bool (*mouse_grab)(
 		struct willis* context,
 		struct willis_error_info* error);
 
-	void (*mouse_ungrab)(
+	bool (*mouse_ungrab)(
 		struct willis* context,
 		struct willis_error_info* error);
 
@@ -253,7 +262,7 @@ void willis_start(
 	void* data,
 	struct willis_error_info* error);
 
-bool willis_handle_event(
+void willis_handle_event(
 	struct willis* context,
 	void* event,
 	struct willis_event_info* event_info,
@@ -269,11 +278,11 @@ const char* willis_get_event_state_name(
 	enum willis_event_state event_state,
 	struct willis_error_info* error);
 
-void willis_mouse_grab(
+bool willis_mouse_grab(
 	struct willis* context,
 	struct willis_error_info* error);
 
-void willis_mouse_ungrab(
+bool willis_mouse_ungrab(
 	struct willis* context,
 	struct willis_error_info* error);
 

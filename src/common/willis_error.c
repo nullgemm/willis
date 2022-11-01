@@ -35,6 +35,33 @@ void willis_error_init(
 		"invalid event code";
 	log[WILLIS_ERROR_EVENT_STATE_INVALID] =
 		"invalid event state";
+
+	log[WILLIS_ERROR_X11_XFIXES_VERSION] =
+		"couldn't get required Xfixes version";
+	log[WILLIS_ERROR_X11_XFIXES_HIDE] =
+		"couldn't hide the cursor with Xfixes";
+	log[WILLIS_ERROR_X11_XFIXES_SHOW] =
+		"couldn't show the cursor with Xfixes";
+	log[WILLIS_ERROR_X11_GRAB] =
+		"couldn't grab the mouse pointer";
+	log[WILLIS_ERROR_X11_UNGRAB] =
+		"couldn't ungrab the mouse pointer";
+	log[WILLIS_ERROR_X11_XINPUT_SELECT_EVENTS] =
+		"couldn't select events with Xinput";
+	log[WILLIS_ERROR_X11_XINPUT_GET_POINTER] =
+		"couldn't get pointer with Xinput";
+	log[WILLIS_ERROR_X11_XKB_SETUP] =
+		"couldn't initialize the XKB X11 extension";
+	log[WILLIS_ERROR_X11_XKB_DEVICE_GET] =
+		"couldn't get the device id with XKB";
+	log[WILLIS_ERROR_X11_XKB_KEYMAP_NEW] =
+		"couldn't create a new XKB keymap";
+	log[WILLIS_ERROR_X11_XKB_STATE_NEW] =
+		"couldn't create a new XKB state";
+	log[WILLIS_ERROR_X11_XKB_SELECT_EVENTS] =
+		"couldn't select events with XKB";
+	log[WILLIS_ERROR_XKB_CONTEXT_NEW] =
+		"couldn't create a new XKB context";
 #endif
 }
 

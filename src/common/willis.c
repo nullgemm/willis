@@ -139,11 +139,9 @@ struct willis* willis_init(
 	code_names[WILLIS_KEY_NUM_9] =            "WILLIS_KEY_NUM_9";
 
 	char** state_names = context->event_state_names;
-	code_names[WILLIS_STATE_NONE] =    "WILLIS_STATE_NONE";
-	code_names[WILLIS_STATE_PRESS] =   "WILLIS_STATE_PRESS";
-	code_names[WILLIS_STATE_RELEASE] = "WILLIS_STATE_RELEASE";
-
-	// TODO init context variables
+	state_names[WILLIS_STATE_NONE] =    "WILLIS_STATE_NONE";
+	state_names[WILLIS_STATE_PRESS] =   "WILLIS_STATE_PRESS";
+	state_names[WILLIS_STATE_RELEASE] = "WILLIS_STATE_RELEASE";
 
 	return context;
 }
@@ -156,18 +154,17 @@ void willis_start(
 	context->backend_callbacks.start(context, data, error);
 }
 
-bool willis_handle_event(
+void willis_handle_event(
 	struct willis* context,
 	void* event,
 	struct willis_event_info* event_info,
 	struct willis_error_info* error)
 {
-	return
-		context->backend_callbacks.handle_event(
-			context,
-			event,
-			event_info,
-			error);
+	context->backend_callbacks.handle_event(
+		context,
+		event,
+		event_info,
+		error);
 }
 
 const char* willis_get_event_code_name(
@@ -200,18 +197,18 @@ const char* willis_get_event_state_name(
 	return NULL;
 }
 
-void willis_mouse_grab(
+bool willis_mouse_grab(
 	struct willis* context,
 	struct willis_error_info* error)
 {
-	context->backend_callbacks.mouse_grab(context, error);
+	return context->backend_callbacks.mouse_grab(context, error);
 }
 
-void willis_mouse_ungrab(
+bool willis_mouse_ungrab(
 	struct willis* context,
 	struct willis_error_info* error)
 {
-	context->backend_callbacks.mouse_ungrab(context, error);
+	return context->backend_callbacks.mouse_ungrab(context, error);
 }
 
 void willis_stop(

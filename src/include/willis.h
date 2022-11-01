@@ -2,6 +2,7 @@
 #define H_WILLIS
 
 #include <stdbool.h>
+#include <stdint.h>
 
 struct willis;
 
@@ -26,7 +27,17 @@ struct willis_error_info
 
 struct willis_event_info
 {
-	// TODO fill
+	char* utf8_string;
+	size_t utf8_size;
+
+	int mouse_x;
+	int mouse_y;
+
+	int64_t diff_x;
+	int64_t diff_y;
+
+	bool utf8_available;
+	bool mouse_grabbed;
 };
 
 struct willis_config_backend

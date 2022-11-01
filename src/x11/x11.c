@@ -162,8 +162,16 @@ void willis_x11_handle_event(
 	enum willis_event_code event_code = WILLIS_NONE;
 	enum willis_event_state event_state = WILLIS_STATE_NONE;
 
-	// initialize error here to make the switch below more readable
+	// initialize here to make the switch below more readable
 	willis_error_ok(error);
+	event_info->event_code = event_code;
+	event_info->event_state = event_state;
+	event_info->utf8_string = NULL;
+	event_info->utf8_size = 0;
+	event_info->mouse_x = 0;
+	event_info->mouse_y = 0;
+	event_info->diff_x = 0;
+	event_info->diff_y = 0;
 
 	// handle event
 	xcb_generic_event_t* xcb_event = event;

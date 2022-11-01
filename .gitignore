@@ -1,0 +1,10 @@
+build
+make/output
+willis_bin_*
+infer_*
+res/infer
+valgrind.log
+drmemory.log
+log
+vgcore.*
+doc/*.bkp

@@ -13,6 +13,8 @@ struct willis
 	struct willis_config_backend backend_callbacks;
 
 	struct willis_event_info* event_info;
+	char* event_code_names[WILLIS_CODE_COUNT];
+	char* willis_event_state_names[WILLIS_STATE_COUNT];
 };
 
 #endif

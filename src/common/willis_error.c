@@ -30,6 +30,11 @@ void willis_error_init(
 		"invalid domain";
 	log[WILLIS_ERROR_FD] =
 		"invalid file descriptor";
+
+	log[WILLIS_ERROR_EVENT_CODE_INVALID] =
+		"invalid event code";
+	log[WILLIS_ERROR_EVENT_STATE_INVALID] =
+		"invalid event state";
 #endif
 }
 

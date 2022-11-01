@@ -1,5 +1,6 @@
-#include "willis.h"
-#include "nix.h"
+#include "include/willis.h"
+#include "common/willis_private.h"
+#include "nix/nix.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -277,7 +278,8 @@ void willis_xkb_utf8_compose(
 	// use simple utf-8 value
 	else if (status == XKB_COMPOSE_NOTHING)
 	{
-		willis_utf8_simple(
+		willis_xkb_utf8_simple(
+			context,
 			xkb_common,
 			keycode,
 			utf8_string,

@@ -8,8 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <xcb/xcb.h>
-#include <xcb/randr.h>
-#include <xcb/xcb_xrm.h>
+#include <xcb/xinput.h>
+#include <xkbcommon/xkbcommon-x11.h>
 
 // HACK
 // we will use pointer aliasing with this custom structure
@@ -165,12 +165,12 @@ void x11_helpers_select_events_keyboard(
 			map_parts,
 			&(backend->xkb_select_events_details));
 
-	xcb_generic_error_t* error =
+	xcb_generic_error_t* error_xcb =
 		xcb_request_check(
 			backend->conn,
 			cookie);
 
-	if (error != NULL)
+	if (error_xcb != NULL)
 	{
 		willis_error_throw(context, error, WILLIS_ERROR_X11_XKB_SELECT_EVENTS);
 		return;
@@ -193,7 +193,7 @@ void x11_helpers_update_keymap(
 			backend->xkb_device_id,
 			XKB_KEYMAP_COMPILE_NO_FLAGS);
 
-	if (xkb_keymap == NULL)
+	if (keymap == NULL)
 	{
 		willis_error_throw(context, error, WILLIS_ERROR_X11_XKB_KEYMAP_NEW);
 		return;
@@ -205,22 +205,22 @@ void x11_helpers_update_keymap(
 			backend->conn,
 			backend->xkb_device_id);
 
-	if (xkb_state == NULL)
+	if (state == NULL)
 	{
-		xkb_keymap_unref(xkb_keymap);
+		xkb_keymap_unref(keymap);
 		willis_error_throw(context, error, WILLIS_ERROR_X11_XKB_STATE_NEW);
 		return;
 	}
 
 	xkb_state_unref(xkb_common->state);
 	xkb_keymap_unref(xkb_common->keymap);
-	xkb_common->xkb_keymap = keymap;
-	xkb_common->xkb_state = state;
+	xkb_common->keymap = keymap;
+	xkb_common->state = state;
 	willis_error_ok(error);
 }
 
 enum willis_event_code x11_helpers_translate_button(
-	xcb_button_t button);
+	xcb_button_t button)
 {
 	switch (button)
 	{

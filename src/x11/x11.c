@@ -3,6 +3,7 @@
 #include "include/willis_x11.h"
 #include "nix/nix.h"
 #include "x11/x11.h"
+#include "x11/x11_helpers.h"
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -181,7 +182,7 @@ void willis_x11_handle_event(
 			// use compose functions if available
 			if (xkb_common->compose_state != NULL)
 			{
-				willis_utf8_compose(
+				willis_xkb_utf8_compose(
 					context,
 					xkb_common,
 					(xkb_keycode_t) key_press->detail,
@@ -192,7 +193,7 @@ void willis_x11_handle_event(
 			// use simple keycode translation otherwise
 			else
 			{
-				willis_utf8_simple(
+				willis_xkb_utf8_simple(
 					context,
 					xkb_common,
 					(xkb_keycode_t) key_press->detail,
@@ -286,7 +287,7 @@ void willis_x11_handle_event(
 		}
 		default:
 		{
-			if (code == willis_x11->xkb_event)
+			if (code == backend->xkb_event)
 			{
 				x11_helpers_handle_xkb(
 					context,
@@ -402,6 +403,8 @@ bool willis_x11_mouse_ungrab(
 	struct willis_error_info* error)
 {
 	struct x11_backend* backend = context->backend_data;
+	xcb_generic_error_t* error_xcb = NULL;
+	xcb_void_cookie_t cookie;
 
 	// abort if already ungrabbed
 	if (backend->mouse_grabbed == false)
@@ -411,16 +414,15 @@ bool willis_x11_mouse_ungrab(
 	}
 
 	// ungrab the pointer
-	xcb_ungrab_pointer_cookie_t pointer_cookie =
+	cookie =
 		xcb_ungrab_pointer(
 			backend->conn,
 			XCB_CURRENT_TIME);
 
-	xcb_ungrab_pointer_reply_t* pointer_reply =
-		xcb_ungrab_pointer_reply(
+	error_xcb =
+		xcb_request_check(
 			backend->conn,
-			pointer_cookie,
-			&error_xcb);
+			cookie);
 
 	if (error_xcb != NULL)
 	{
@@ -429,7 +431,7 @@ bool willis_x11_mouse_ungrab(
 	}
 
 	// show the cursor back
-	xcb_void_cookie_t xfixes_show_cookie =
+	cookie =
 		xcb_xfixes_show_cursor(
 			backend->conn,
 			backend->window);
@@ -437,7 +439,7 @@ bool willis_x11_mouse_ungrab(
 	error_xcb =
 		xcb_request_check(
 			backend->conn,
-			xfixes_show_cookie);
+			cookie);
 
 	if (error_xcb != NULL)
 	{
@@ -481,12 +483,9 @@ void willis_x11_clean(
 	struct willis_error_info* error)
 {
 	struct x11_backend* backend = context->backend_data;
+	struct willis_xkb* xkb_common = backend->xkb_common;
 
-	if (context->event_info != NULL)
-	{
-		free(context->event_info);
-	}
-
+	free(xkb_common);
 	free(backend);
 
 	willis_error_ok(error);

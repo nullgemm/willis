@@ -188,16 +188,23 @@ struct willis_error_info
 
 struct willis_event_info
 {
+	// willis event
+	enum willis_event_code event_code;
+	enum willis_event_state event_state;
+
+	// utf-8 input string for key events
 	char* utf8_string;
 	size_t utf8_size;
 
+	// cursor position info for mouse events
 	int mouse_x;
 	int mouse_y;
+	int64_t diff_x; // signed fixed-point (Q31.32)
+	int64_t diff_y; // signed fixed-point (Q31.32)
 
-	int64_t diff_x;
-	int64_t diff_y;
-
+	// whether the utf-8 input string is available
 	bool utf8_available;
+	// whether the mouse is held captive by the window
 	bool mouse_grabbed;
 };
 
@@ -218,6 +225,14 @@ struct willis_config_backend
 		struct willis* context,
 		void* event,
 		struct willis_event_info* event_info,
+		struct willis_error_info* error);
+
+	void (*mouse_grab)(
+		struct willis* context,
+		struct willis_error_info* error);
+
+	void (*mouse_ungrab)(
+		struct willis* context,
 		struct willis_error_info* error);
 
 	void (*stop)(
@@ -252,6 +267,14 @@ const char* willis_get_event_code_name(
 const char* willis_get_event_state_name(
 	struct willis* context,
 	enum willis_event_state event_state,
+	struct willis_error_info* error);
+
+void willis_mouse_grab(
+	struct willis* context,
+	struct willis_error_info* error);
+
+void willis_mouse_ungrab(
+	struct willis* context,
 	struct willis_error_info* error);
 
 void willis_stop(

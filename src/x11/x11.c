@@ -122,6 +122,18 @@ bool willis_x11_handle_event(
 	return valid;
 }
 
+void willis_x11_mouse_grab(
+	struct willis* context,
+	struct willis_error_info* error)
+{
+}
+
+void willis_x11_mouse_ungrab(
+	struct willis* context,
+	struct willis_error_info* error)
+{
+}
+
 void willis_x11_stop(
 	struct willis* context,
 	struct willis_error_info* error)
@@ -154,6 +166,8 @@ void willis_prepare_init_x11(
 	config->init = willis_x11_init;
 	config->start = willis_x11_start;
 	config->handle_event = willis_x11_handle_event;
+	config->mouse_grab = willis_x11_mouse_grab;
+	config->mouse_ungrab = willis_x11_mouse_ungrab;
 	config->stop = willis_x11_stop;
 	config->clean = willis_x11_clean;
 }

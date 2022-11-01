@@ -200,6 +200,20 @@ const char* willis_get_event_state_name(
 	return NULL;
 }
 
+void willis_mouse_grab(
+	struct willis* context,
+	struct willis_error_info* error)
+{
+	context->backend_callbacks.mouse_grab(context, error);
+}
+
+void willis_mouse_ungrab(
+	struct willis* context,
+	struct willis_error_info* error)
+{
+	context->backend_callbacks.mouse_ungrab(context, error);
+}
+
 void willis_stop(
 	struct willis* context,
 	struct willis_error_info* error)

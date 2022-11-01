@@ -30,6 +30,14 @@ bool willis_x11_handle_event(
 	struct willis_event_info* event_info,
 	struct willis_error_info* error);
 
+void willis_x11_mouse_grab(
+	struct willis* context,
+	struct willis_error_info* error);
+
+void willis_x11_mouse_ungrab(
+	struct willis* context,
+	struct willis_error_info* error);
+
 void willis_x11_stop(
 	struct willis* context,
 	struct willis_error_info* error);

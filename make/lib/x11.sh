@@ -37,9 +37,9 @@ flags+=("-Isrc/include")
 flags+=("-fPIC")
 flags+=("-fdiagnostics-color=always")
 
-#defines+=("-DGLOBOX_ERROR_ABORT")
-#defines+=("-DGLOBOX_ERROR_SKIP")
-defines+=("-DGLOBOX_ERROR_LOG_DEBUG")
+#defines+=("-DCURSORYX_ERROR_ABORT")
+#defines+=("-DCURSORYX_ERROR_SKIP")
+defines+=("-DCURSORYX_ERROR_LOG_DEBUG")
 
 # customize depending on the chosen build type
 if [ -z "$build" ]; then
@@ -49,7 +49,7 @@ fi
 case $build in
 	development)
 flags+=("-g")
-defines+=("-DGLOBOX_ERROR_LOG_THROW")
+defines+=("-DCURSORYX_ERROR_LOG_THROW")
 	;;
 
 	release)
@@ -58,7 +58,7 @@ flags+=("-fstack-protector-strong")
 flags+=("-fPIE")
 flags+=("-fPIC")
 flags+=("-O2")
-defines+=("-DGLOBOX_ERROR_LOG_MANUAL")
+defines+=("-DCURSORYX_ERROR_LOG_MANUAL")
 	;;
 
 	sanitized_memory)
@@ -69,7 +69,7 @@ flags+=("-fno-optimize-sibling-calls")
 
 flags+=("-fsanitize=leak")
 flags+=("-fsanitize-recover=all")
-defines+=("-DGLOBOX_ERROR_LOG_THROW")
+defines+=("-DCURSORYX_ERROR_LOG_THROW")
 	;;
 
 	sanitized_undefined)
@@ -80,7 +80,7 @@ flags+=("-fno-optimize-sibling-calls")
 
 flags+=("-fsanitize=undefined")
 flags+=("-fsanitize-recover=all")
-defines+=("-DGLOBOX_ERROR_LOG_THROW")
+defines+=("-DCURSORYX_ERROR_LOG_THROW")
 	;;
 
 	sanitized_address)
@@ -92,7 +92,7 @@ flags+=("-fno-optimize-sibling-calls")
 flags+=("-fsanitize=address")
 flags+=("-fsanitize-address-use-after-scope")
 flags+=("-fsanitize-recover=all")
-defines+=("-DGLOBOX_ERROR_LOG_THROW")
+defines+=("-DCURSORYX_ERROR_LOG_THROW")
 	;;
 
 	sanitized_thread)
@@ -103,7 +103,7 @@ flags+=("-fno-optimize-sibling-calls")
 
 flags+=("-fsanitize=thread")
 flags+=("-fsanitize-recover=all")
-defines+=("-DGLOBOX_ERROR_LOG_THROW")
+defines+=("-DCURSORYX_ERROR_LOG_THROW")
 	;;
 
 	*)

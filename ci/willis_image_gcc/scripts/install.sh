@@ -6,7 +6,7 @@
 # gcc						compiling the code
 # musl-dev					standard C library
 # libxcb-dev				libxcb
-# xcb-util-xrm-dev			i3gaps xcb xrm helper
+# libxkbcommon-dev			libxkbcommon
 
 apk add --no-cache \
 	git \
@@ -15,4 +15,4 @@ apk add --no-cache \
 	gcc \
 	musl-dev \
 	libxcb-dev \
-	xcb-util-xrm-dev
+	libxkbcommon-dev \

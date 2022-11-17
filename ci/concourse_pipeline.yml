@@ -7,10 +7,10 @@ jobs:
           image_resource:
             type: registry-image
             source:
-              repository: docker_registry:443/nullgemm/willis_image_gcc
+              repository: docker_registry:443/nullgemm/willis_image_x11_gcc
               ca_certs: ((docker_registry_certs))
               tag: latest
           params:
-            GIT_REPO_URL: willis_image_gcc
+            GIT_REPO_URL: willis_image_x11_gcc
           run:
             path: /scripts/build_x11.sh

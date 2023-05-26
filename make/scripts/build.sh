@@ -8,6 +8,7 @@ cd "$folder"/../.. || exit
 # get params
 build_type=$1
 build_backend=$2
+build_toolchain=$3
 
 # set params default values if needed
 if [ -z "$build_type" ]; then
@@ -15,7 +16,11 @@ if [ -z "$build_type" ]; then
 fi
 
 if [ -z "$build_backend" ]; then
-	build_backend=x11
+	build_backend=appkit
+fi
+
+if [ -z "$build_toolchain" ]; then
+	build_toolchain=native
 fi
 
 # generate ninja files
@@ -24,6 +29,12 @@ case $build_backend in
 		rm -rf build make/output
 		./make/lib/elf.sh $build_type
 		./make/lib/x11.sh $build_type
+	;;
+
+	appkit)
+		rm -rf build make/output
+		./make/lib/macho.sh $build_type $build_toolchain
+		./make/lib/appkit.sh $build_type $build_toolchain
 	;;
 
 	*)
@@ -40,6 +51,14 @@ case $build_backend in
 
 		samu -f ./make/output/lib_elf.ninja headers
 		samu -f ./make/output/lib_x11.ninja headers
+	;;
+
+	appkit)
+		samu -f ./make/output/lib_macho.ninja
+		samu -f ./make/output/lib_appkit.ninja
+
+		samu -f ./make/output/lib_macho.ninja headers
+		samu -f ./make/output/lib_appkit.ninja headers
 	;;
 
 	*)

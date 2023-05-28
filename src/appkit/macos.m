@@ -9,8 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <Carbon/Carbon.h> // virtual keycode enums
-#include <CoreGraphics/CoreGraphics.h> // CGDisplayHideCursor, CGDisplayShowCursor
+#import <Carbon/Carbon.h> // virtual keycode enums
+#import <CoreGraphics/CoreGraphics.h> // CGDisplayHideCursor, CGDisplayShowCursor
 
 void willis_appkit_init(
 	struct willis* context,

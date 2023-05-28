@@ -8,8 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <AppKit/AppKit.h>
-#include <Carbon/Carbon.h> // virtual keycode enums
+#import <AppKit/AppKit.h>
+#import <Carbon/Carbon.h> // virtual keycode enums
 
 // sparse LUT for keycode translation
 static const enum willis_event_code keycode_table_appkit[256] =

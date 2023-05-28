@@ -4,7 +4,7 @@
 #include "include/willis.h"
 #include "appkit/macos.h"
 
-#include <AppKit/AppKit.h>
+#import <AppKit/AppKit.h>
 
 enum willis_event_code appkit_helpers_keycode_table(
 	uint8_t code);

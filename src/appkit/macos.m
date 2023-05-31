@@ -139,7 +139,7 @@ void willis_appkit_handle_event(
 				NSRect frame = [view frame];
 				NSPoint point = [window mouseLocationOutsideOfEventStream];
 
-				if ((NSHeight(frame) > (point.x - NSMinY(frame)))
+				if ((NSHeight(frame) > (NSHeight(frame) - (point.y - NSMinY(frame))))
 				&& (point.y > NSMinY(frame))
 				&& (NSWidth(frame) > (point.x - NSMinX(frame)))
 				&& (point.x > NSMinX(frame)))

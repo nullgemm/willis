@@ -14,3 +14,26 @@ jobs:
             GIT_REPO_URL: willis_image_x11_gcc
           run:
             path: /scripts/build_x11.sh
+  - name: willis_build_appkit_osxcross
+    plan:
+      - task: willis_build_appkit_osxcross_task
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: docker_registry:443/nullgemm/willis_image_appkit_osxcross
+              ca_certs: ((docker_registry_certs))
+              tag: latest
+          params:
+            GIT_REPO_URL: willis_image_appkit_osxcross
+          run:
+            path: /scripts/build_appkit.sh
+  - name: willis_build_appkit_native
+    plan:
+      - task: willis_build_appkit_software_task
+        config:
+          platform: darwin
+          run:
+            path: /bin/bash
+            args: ["--login", "/Users/nullgemm/Documents/concourse/bin/willis_scripts_appkit_native/build.sh"]

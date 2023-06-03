@@ -4,4 +4,4 @@ COPY ./scripts /scripts
 
 RUN /scripts/install.sh
 
-CMD /scripts/build_x11.sh
+CMD /scripts/build_x11.sh release x11 native

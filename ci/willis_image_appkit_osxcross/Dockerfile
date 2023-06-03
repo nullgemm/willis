@@ -5,4 +5,4 @@ COPY ./scripts /scripts
 WORKDIR /scripts
 RUN /scripts/install.sh
 
-CMD /scripts/build_appkit.sh development appkit osxcross
+CMD /scripts/build_appkit.sh release appkit osxcross

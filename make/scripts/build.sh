@@ -68,11 +68,11 @@ case $build_backend in
 	;;
 
 	win)
-		samu -f ./make/output/lib_pe.ninja
-		samu -f ./make/output/lib_win.ninja
+		ninja -f ./make/output/lib_pe.ninja
+		ninja -f ./make/output/lib_win.ninja
 
-		samu -f ./make/output/lib_pe.ninja headers
-		samu -f ./make/output/lib_win.ninja headers
+		ninja -f ./make/output/lib_pe.ninja headers
+		ninja -f ./make/output/lib_win.ninja headers
 	;;
 
 	*)

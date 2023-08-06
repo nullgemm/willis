@@ -75,6 +75,8 @@ void willis_error_init(
 		"couldn't unclip win32 mouse";
 	log[WILLIS_ERROR_WIN_WINDOW_MOUSE_RAW_GET] =
 		"couldn't get win32 window raw mouse movement info";
+	log[WILLIS_ERROR_WIN_ACTIVE_GET] =
+		"couldn't get a win32 active window handle";
 #endif
 }
 

@@ -337,8 +337,17 @@ bool willis_win_mouse_grab(
 
 	BOOL ok;
 
+	// get active window, otherwise the routine fails
+	HWND win = GetActiveWindow();
+
+	if (win == NULL)
+	{
+		willis_error_throw(context, error, WILLIS_ERROR_WIN_ACTIVE_GET);
+		return false;
+	}
+
 	// register raw mouse input access
-	RAWINPUTDEVICE mouse = {1, 2, 0, backend->win};
+	RAWINPUTDEVICE mouse = {1, 2, 0, win};
 
 	ok = RegisterRawInputDevices(&mouse, 1, sizeof (RAWINPUTDEVICE));
 
@@ -351,7 +360,7 @@ bool willis_win_mouse_grab(
 	// get window rect
 	RECT rect;
 
-	ok = GetWindowRect(backend->win, &rect);
+	ok = GetWindowRect(win, &rect);
 
 	if (ok == 0)
 	{

@@ -33,6 +33,13 @@ enum willis_error
 	WILLIS_ERROR_X11_XKB_SELECT_EVENTS,
 	WILLIS_ERROR_XKB_CONTEXT_NEW,
 
+	WILLIS_ERROR_WIN_MOUSE_GRAB,
+	WILLIS_ERROR_WIN_MOUSE_UNGRAB,
+	WILLIS_ERROR_WIN_WINDOW_RECT_GET,
+	WILLIS_ERROR_WIN_WINDOW_CURSOR_CLIP,
+	WILLIS_ERROR_WIN_WINDOW_CURSOR_UNCLIP,
+	WILLIS_ERROR_WIN_WINDOW_MOUSE_RAW_GET,
+
 	WILLIS_ERROR_COUNT,
 };
 
@@ -210,6 +217,9 @@ struct willis_event_info
 	// utf-8 input string for key events
 	char* utf8_string;
 	size_t utf8_size;
+
+	// mouse wheel
+	int mouse_wheel_steps;
 
 	// cursor position info for mouse events
 	int mouse_x;

@@ -235,6 +235,8 @@ void willis_appkit_handle_event(
 				event_info->event_code = WILLIS_MOUSE_WHEEL_UP;
 			}
 
+			event_info->mouse_wheel_steps = 1;
+
 			break;
 		}
 		case NSEventTypeFlagsChanged:

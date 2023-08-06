@@ -62,6 +62,19 @@ void willis_error_init(
 		"couldn't select events with XKB";
 	log[WILLIS_ERROR_XKB_CONTEXT_NEW] =
 		"couldn't create a new XKB context";
+
+	log[WILLIS_ERROR_WIN_MOUSE_GRAB] =
+		"couldn't grab win32 mouse";
+	log[WILLIS_ERROR_WIN_MOUSE_UNGRAB] =
+		"couldn't ungrab win32 mouse";
+	log[WILLIS_ERROR_WIN_WINDOW_RECT_GET] =
+		"couldn't get win32 window rectangle";
+	log[WILLIS_ERROR_WIN_WINDOW_CURSOR_CLIP] =
+		"couldn't clip win32 mouse";
+	log[WILLIS_ERROR_WIN_WINDOW_CURSOR_UNCLIP] =
+		"couldn't unclip win32 mouse";
+	log[WILLIS_ERROR_WIN_WINDOW_MOUSE_RAW_GET] =
+		"couldn't get win32 window raw mouse movement info";
 #endif
 }
 

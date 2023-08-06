@@ -1,7 +1,6 @@
 #include "include/willis.h"
 #include "common/willis_private.h"
 #include "include/willis_win.h"
-#include "nix/nix.h"
 #include "win/win.h"
 #include "win/win_helpers.h"
 
@@ -10,6 +9,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <windows.h>
+#include <winuser.h>
+
+union willis_mixed_param
+{
+	uint64_t u;
+	int64_t s;
+};
 
 void willis_win_init(
 	struct willis* context,
@@ -29,20 +35,6 @@ void willis_win_init(
 
 	context->backend_data = backend;
 
-	// init xkb struct
-	struct willis_xkb* xkb_common = malloc(sizeof (struct willis_xkb));
-
-	if (xkb_common == NULL)
-	{
-		willis_error_throw(context, error, WILLIS_ERROR_ALLOC);
-		return;
-	}
-
-	struct willis_xkb zero_xkb = {0};
-	*xkb_common = zero_xkb;
-
-	backend->xkb_common = xkb_common;
-
 	// success
 	willis_error_ok(error);
 }
@@ -55,90 +47,9 @@ void willis_win_start(
 	struct win_backend* backend = context->backend_data;
 	struct willis_win_data* window_data = data;
 
-	xcb_xkb_select_events_details_t zero = {0};
-	xcb_generic_error_t* error_xcb;
-
-	backend->conn = window_data->conn;
-	backend->window = window_data->window;
-	backend->root = window_data->root;
+	backend->win = window_data->win;
+	backend->device_context = window_data->device_context;
 	backend->mouse_grabbed = false;
-
-	backend->xkb_device_id = 0;
-	backend->xkb_event = 0;
-	backend->xkb_select_events_details = zero;
-
-	// get the best locale setting available
-	willis_xkb_init_locale(backend->xkb_common);
-
-	// init the xkb win extension
-	int error_posix =
-		xkb_win_setup_xkb_extension(
-			backend->conn,
-			XKB_WIN_MIN_MAJOR_XKB_VERSION,
-			XKB_WIN_MIN_MINOR_XKB_VERSION,
-			XKB_WIN_SETUP_XKB_EXTENSION_NO_FLAGS,
-			NULL,
-			NULL,
-			&(backend->xkb_event),
-			NULL);
-
-	if (error_posix == 0)
-	{
-		willis_error_throw(context, error, WILLIS_ERROR_WIN_XKB_SETUP);
-		return;
-	}
-
-	// create the xkb context
-	backend->xkb_common->context =
-		xkb_context_new(
-			XKB_CONTEXT_NO_FLAGS);
-
-	if (backend->xkb_common->context == NULL)
-	{
-		willis_error_throw(context, error, WILLIS_ERROR_XKB_CONTEXT_NEW);
-		return;
-	}
-
-	// prepare composition handling with xkb
-	willis_xkb_init_compose(backend->xkb_common);
-
-	// get the xkb device id
-	backend->xkb_device_id =
-		xkb_win_get_core_keyboard_device_id(
-			backend->conn);
-
-	if (backend->xkb_device_id == -1)
-	{
-		xkb_compose_state_unref(backend->xkb_common->compose_state); // ok to unref if NULL
-		xkb_compose_table_unref(backend->xkb_common->compose_table); // ok to unref if NULL
-		xkb_context_unref(backend->xkb_common->context);
-		willis_error_throw(context, error, WILLIS_ERROR_WIN_XKB_DEVICE_GET);
-		return;
-	}
-
-	// update the xkb keymap
-	win_helpers_update_keymap(context, error);
-
-	if (willis_error_get_code(error) != WILLIS_ERROR_OK)
-	{
-		xkb_compose_state_unref(backend->xkb_common->compose_state);
-		xkb_compose_table_unref(backend->xkb_common->compose_table);
-		xkb_context_unref(backend->xkb_common->context);
-		return;
-	}
-
-	// select xkb events
-	win_helpers_select_events_keyboard(context, error);
-
-	if (willis_error_get_code(error) != WILLIS_ERROR_OK)
-	{
-		xkb_state_unref(backend->xkb_common->state);
-		xkb_keymap_unref(backend->xkb_common->keymap);
-		xkb_compose_state_unref(backend->xkb_common->compose_state);
-		xkb_compose_table_unref(backend->xkb_common->compose_table);
-		xkb_context_unref(backend->xkb_common->context);
-		return;
-	}
 
 	willis_error_ok(error);
 }
@@ -150,7 +61,6 @@ void willis_win_handle_event(
 	struct willis_error_info* error)
 {
 	struct win_backend* backend = context->backend_data;
-	struct willis_xkb* xkb_common = backend->xkb_common;
 
 	// initialize event code and state to default values
 	enum willis_event_code event_code = WILLIS_NONE;
@@ -162,141 +72,243 @@ void willis_win_handle_event(
 	event_info->event_state = event_state;
 	event_info->utf8_string = NULL;
 	event_info->utf8_size = 0;
+	event_info->mouse_wheel_steps = 0;
 	event_info->mouse_x = 0;
 	event_info->mouse_y = 0;
 	event_info->diff_x = 0;
 	event_info->diff_y = 0;
 
 	// handle event
-	xcb_generic_event_t* xcb_event = event;
-	int code = xcb_event->response_type & ~0x80;
+	MSG* msg = event;
 
-	switch (code)
+	switch (msg->message)
 	{
-		case XCB_KEY_PRESS:
+		case WM_KEYDOWN:
 		{
-			xcb_key_press_event_t* key_press =
-				(xcb_key_press_event_t*) event;
-
-			event_code = willis_xkb_translate_keycode(key_press->detail);
+			event_code = win_helpers_keycode_table(msg->wParam & 0xFF);
 			event_state = WILLIS_STATE_PRESS;
 
-			// use compose functions if available
-			if (xkb_common->compose_state != NULL)
+			break;
+		}
+		case WM_KEYUP:
+		{
+			event_code = win_helpers_keycode_table(msg->wParam & 0xFF);
+			event_state = WILLIS_STATE_RELEASE;
+
+			break;
+		}
+		case WM_SYSKEYDOWN:
+		{
+			uint8_t code = msg->wParam & 0xFF;
+
+			if (code == VK_MENU)
 			{
-				willis_xkb_utf8_compose(
-					context,
-					xkb_common,
-					(xkb_keycode_t) key_press->detail,
-					&(event_info->utf8_string),
-					&(event_info->utf8_size),
-					error);
+				event_state = WILLIS_STATE_PRESS;
+
+				if ((HIWORD(msg->lParam) & 0x0100) != 0)
+				{
+					event_code = WILLIS_KEY_ALT_RIGHT;
+				}
+				else
+				{
+					event_code = WILLIS_KEY_ALT_LEFT;
+				}
 			}
-			// use simple keycode translation otherwise
+			else if (code == VK_F10)
+			{
+				event_state = WILLIS_STATE_PRESS;
+				event_code = WILLIS_KEY_F10;
+			}
+
+			break;
+		}
+		case WM_SYSKEYUP:
+		{
+			uint8_t code = msg->wParam & 0xFF;
+
+			if (code == VK_MENU)
+			{
+				event_state = WILLIS_STATE_RELEASE;
+
+				if ((HIWORD(msg->lParam) & 0x0100) != 0)
+				{
+					event_code = WILLIS_KEY_ALT_RIGHT;
+				}
+				else
+				{
+					event_code = WILLIS_KEY_ALT_LEFT;
+				}
+			}
+			else if (code == VK_F10)
+			{
+				event_state = WILLIS_STATE_RELEASE;
+				event_code = WILLIS_KEY_F10;
+			}
+
+			break;
+		}
+		case WM_MOUSEWHEEL:
+		{
+			// mouse wheel steps portable sign reproduction
+			uint8_t bit_length = (8 * (sizeof (WORD)));
+			WORD sign = 1 << (bit_length - 1);
+			WORD param = HIWORD(msg->wParam);
+
+			union willis_mixed_param mixed_param;
+			mixed_param.u = param;
+
+			if ((param & sign) != sign)
+			{
+				event_code = WILLIS_MOUSE_WHEEL_UP;
+			}
 			else
 			{
-				willis_xkb_utf8_simple(
-					context,
-					xkb_common,
-					(xkb_keycode_t) key_press->detail,
-					&(event_info->utf8_string),
-					&(event_info->utf8_size),
-					error);
+				mixed_param.u |= 0xFFFFFFFFFFFFFFFF << bit_length;
+				mixed_param.s = -mixed_param.s;
+				event_code = WILLIS_MOUSE_WHEEL_DOWN;
 			}
 
-			break;
-		}
-		case XCB_KEY_RELEASE:
-		{
-			xcb_key_release_event_t* key_release =
-				(xcb_key_release_event_t*) event;
-
-			event_code = willis_xkb_translate_keycode(key_release->detail);
-			event_state = WILLIS_STATE_RELEASE;
+			event_info->mouse_wheel_steps = mixed_param.u / WHEEL_DELTA;
 
 			break;
 		}
-		case XCB_BUTTON_PRESS:
+		case WM_LBUTTONDOWN:
 		{
-			xcb_button_press_event_t* button_press =
-				(xcb_button_press_event_t*) event;
-
-			event_code = win_helpers_translate_button(button_press->detail);
+			event_code = WILLIS_MOUSE_CLICK_LEFT;
 			event_state = WILLIS_STATE_PRESS;
 
 			break;
 		}
-		case XCB_BUTTON_RELEASE:
+		case WM_LBUTTONUP:
 		{
-			xcb_button_release_event_t* button_release =
-				(xcb_button_release_event_t*) event;
-
-			event_code = win_helpers_translate_button(button_release->detail);
+			event_code = WILLIS_MOUSE_CLICK_LEFT;
 			event_state = WILLIS_STATE_RELEASE;
 
 			break;
 		}
-		case XCB_MOTION_NOTIFY:
+		case WM_RBUTTONDOWN:
 		{
-			xcb_motion_notify_event_t* motion =
-				(xcb_motion_notify_event_t*) event;
+			event_code = WILLIS_MOUSE_CLICK_RIGHT;
+			event_state = WILLIS_STATE_PRESS;
 
+			break;
+		}
+		case WM_RBUTTONUP:
+		{
+			event_code = WILLIS_MOUSE_CLICK_RIGHT;
+			event_state = WILLIS_STATE_RELEASE;
+
+			break;
+		}
+		case WM_MBUTTONDOWN:
+		{
+			event_code = WILLIS_MOUSE_CLICK_MIDDLE;
+			event_state = WILLIS_STATE_PRESS;
+
+			break;
+		}
+		case WM_MBUTTONUP:
+		{
+			event_code = WILLIS_MOUSE_CLICK_MIDDLE;
+			event_state = WILLIS_STATE_RELEASE;
+
+			break;
+		}
+		case WM_MOUSEMOVE:
+		{
 			event_code = WILLIS_MOUSE_MOTION;
 			event_state = WILLIS_STATE_NONE;
 
-			event_info->mouse_x = motion->event_x;
-			event_info->mouse_y = motion->event_y;
+			event_info->mouse_x = LOWORD(msg->lParam);
+			event_info->mouse_y = HIWORD(msg->lParam);
 
 			break;
 		}
-		case XCB_GE_GENERIC:
+		case WM_INPUT:
 		{
-			xcb_ge_generic_event_t* generic =
-				(xcb_ge_generic_event_t*) event;
+			RAWINPUT raw = {0};
+			UINT raw_bytes = sizeof (RAWINPUT);
+			HRAWINPUT input = (HRAWINPUT) msg->lParam;
 
-			if (generic->event_type != XCB_INPUT_RAW_MOTION)
+			UINT ok =
+				GetRawInputData(
+					input,
+					RID_INPUT,
+					&raw,
+					&raw_bytes,
+					sizeof (RAWINPUTHEADER));
+
+			if (ok == ((UINT)-1))
 			{
+				willis_error_throw(
+					context,
+					error,
+					WILLIS_ERROR_WIN_WINDOW_MOUSE_RAW_GET);
+
 				break;
 			}
 
-			xcb_input_raw_motion_event_t* raw
-				= (xcb_input_raw_motion_event_t*) event;
-
-			int len =
-				xcb_input_raw_button_press_axisvalues_length(raw);
-
-			xcb_input_fp3232_t* axis =
-				xcb_input_raw_button_press_axisvalues_raw(raw);
-
-			xcb_input_fp3232_t value;
-
-			if (len > 0)
+			if (raw.header.dwType == RIM_TYPEMOUSE)
 			{
-				value = axis[0];
-				event_info->diff_x = (((int64_t) value.integral) << 32) | value.frac;
+				RAWMOUSE* mouse = &raw.data.mouse;
+
+				if ((mouse->usFlags & 0x01) == MOUSE_MOVE_RELATIVE)
+				{
+					event_code = WILLIS_MOUSE_MOTION;
+					event_state = WILLIS_STATE_NONE;
+
+					event_info->diff_x = mouse->lLastX * 0x0000000100000000;
+					event_info->diff_y = mouse->lLastY * 0x0000000100000000;
+				}
 			}
 
-			if (len > 1)
+			break;
+		}
+		case WM_CHAR:
+		{
+			// utf16 to utf8 conversion
+			uint32_t utf16 = msg->wParam;
+			event_info->utf8_string = malloc(5);
+
+			if (event_info->utf8_string == NULL)
 			{
-				value = axis[1];
-				event_info->diff_y = (((int64_t) value.integral) << 32) | value.frac;
+				willis_error_throw(context, error, WILLIS_ERROR_ALLOC);
+				break;
 			}
 
-			event_code = WILLIS_MOUSE_MOTION;
-			event_state = WILLIS_STATE_NONE;
+			if (utf16 < 0x80)
+			{
+				event_info->utf8_string[0] = utf16;
+				event_info->utf8_size = 1;
+			}
+			else if (utf16 < 0x800)
+			{
+				event_info->utf8_string[0] = 0xC0 | (0x1F & (utf16 >> 6));
+				event_info->utf8_string[1] = 0x80 | (0x3F & (utf16 >> 0));
+				event_info->utf8_size = 2;
+			}
+			else if (utf16 < 0x10000)
+			{
+				event_info->utf8_string[0] = 0xE0 | (0x0F & (utf16 >> 12));
+				event_info->utf8_string[1] = 0x80 | (0x3F & (utf16 >> 6));
+				event_info->utf8_string[2] = 0x80 | (0x3F & (utf16 >> 0));
+				event_info->utf8_size = 3;
+			}
+			else
+			{
+				event_info->utf8_string[0] = 0xF0 | (0x07 & (utf16 >> 18));
+				event_info->utf8_string[1] = 0x80 | (0x3F & (utf16 >> 12));
+				event_info->utf8_string[2] = 0x80 | (0x3F & (utf16 >> 6));
+				event_info->utf8_string[3] = 0x80 | (0x3F & (utf16 >> 0));
+				event_info->utf8_size = 4;
+			}
+
+			event_info->utf8_string[event_info->utf8_size] = '\0';
 
 			break;
 		}
 		default:
 		{
-			if (code == backend->xkb_event)
-			{
-				win_helpers_handle_xkb(
-					context,
-					event,
-					error);
-			}
-
 			break;
 		}
 	}
@@ -307,6 +319,9 @@ void willis_win_handle_event(
 	// error always set
 }
 
+// this might look like a dirty way to work around the device listing system
+// but these values are actually documented as valid for any mouse in the Winuser.h manual
+// (https://docs.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-rid_device_info_mouse)
 bool willis_win_mouse_grab(
 	struct willis* context,
 	struct willis_error_info* error)
@@ -320,81 +335,50 @@ bool willis_win_mouse_grab(
 		return false;
 	}
 
-	// check xfixes supports what we are about to attempt
-	xcb_generic_error_t* error_xcb = NULL;
+	BOOL ok;
 
-	xcb_xfixes_query_version_cookie_t xfixes_version_cookie =
-		xcb_xfixes_query_version(
-			backend->conn,
-			4,
-			0);
-	
-	xcb_xfixes_query_version_reply_t* xfixes_version_reply =
-		xcb_xfixes_query_version_reply(
-			backend->conn,
-			xfixes_version_cookie,
-			&error_xcb);
+	// register raw mouse input access
+	RAWINPUTDEVICE mouse = {1, 2, 0, backend->win};
 
-	if (error_xcb != NULL)
+	ok = RegisterRawInputDevices(&mouse, 1, sizeof (RAWINPUTDEVICE));
+
+	if (ok == FALSE)
 	{
-		willis_error_throw(context, error, WILLIS_ERROR_WIN_XFIXES_VERSION);
+		willis_error_throw(context, error, WILLIS_ERROR_WIN_MOUSE_GRAB);
 		return false;
 	}
 
-	free(xfixes_version_reply);
+	// get window rect
+	RECT rect;
 
-	// hide the cursor just in case
-	xcb_void_cookie_t xfixes_hide_cookie =
-		xcb_xfixes_hide_cursor(
-			backend->conn,
-			backend->window);
+	ok = GetWindowRect(backend->win, &rect);
 
-	error_xcb =
-		xcb_request_check(
-			backend->conn,
-			xfixes_hide_cookie);
-
-	if (error_xcb != NULL)
+	if (ok == 0)
 	{
-		willis_error_throw(context, error, WILLIS_ERROR_WIN_XFIXES_HIDE);
+		willis_error_throw(context, error, WILLIS_ERROR_WIN_WINDOW_RECT_GET);
 		return false;
 	}
 
-	// grab the pointer
-	xcb_grab_pointer_cookie_t pointer_cookie =
-		xcb_grab_pointer(
-			backend->conn,
-			true,
-			backend->root,
-			XCB_NONE,
-			XCB_GRAB_MODE_ASYNC,
-			XCB_GRAB_MODE_ASYNC,
-			backend->window,
-			XCB_CURSOR_NONE, // TODO use invisible cursor
-			XCB_CURRENT_TIME);
+	// clip cursor
+	LONG x = (rect.left + rect.right) / 2;
+	LONG y = (rect.top + rect.bottom) / 2;
 
-	xcb_grab_pointer_reply_t* pointer_reply =
-		xcb_grab_pointer_reply(
-			backend->conn,
-			pointer_cookie,
-			&error_xcb);
+	rect.left = x - 1;
+	rect.right = x + 1;
+	rect.top = y - 1;
+	rect.bottom = y + 1;
 
-	if (error_xcb != NULL)
+	ok = ClipCursor(&rect);
+
+	if (ok == 0)
 	{
-		willis_error_throw(context, error, WILLIS_ERROR_WIN_GRAB);
+		willis_error_throw(context, error, WILLIS_ERROR_WIN_WINDOW_CURSOR_CLIP);
 		return false;
 	}
 
-	// select events
-	win_helpers_select_events_cursor(
-		context,
-		XCB_INPUT_XI_EVENT_MASK_RAW_MOTION,
-		error);
-
-	if (willis_error_get_code(error) != WILLIS_ERROR_OK)
-	{
-		return false;
-	}
+	// save grab status
+	ShowCursor(FALSE);
+	backend->mouse_grabbed = true;
 
 	// error always set
 	return true;
@@ -405,8 +389,6 @@ bool willis_win_mouse_ungrab(
 	struct willis_error_info* error)
 {
 	struct win_backend* backend = context->backend_data;
-	xcb_generic_error_t* error_xcb = NULL;
-	xcb_void_cookie_t cookie;
 
 	// abort if already ungrabbed
 	if (backend->mouse_grabbed == false)
@@ -415,50 +397,31 @@ bool willis_win_mouse_ungrab(
 		return false;
 	}
 
-	// ungrab the pointer
-	cookie =
-		xcb_ungrab_pointer(
-			backend->conn,
-			XCB_CURRENT_TIME);
+	BOOL ok;
 
-	error_xcb =
-		xcb_request_check(
-			backend->conn,
-			cookie);
+	// unregister raw mouse input access
+	RAWINPUTDEVICE mouse = {1, 2, RIDEV_REMOVE, NULL};
 
-	if (error_xcb != NULL)
+	ok = RegisterRawInputDevices(&mouse, 1, sizeof (RAWINPUTDEVICE));
+
+	if (ok == FALSE)
 	{
-		willis_error_throw(context, error, WILLIS_ERROR_WIN_UNGRAB);
+		willis_error_throw(context, error, WILLIS_ERROR_WIN_MOUSE_UNGRAB);
 		return false;
 	}
 
-	// show the cursor back
-	cookie =
-		xcb_xfixes_show_cursor(
-			backend->conn,
-			backend->window);
+	// unclip cursor
+	ok = ClipCursor(NULL);
 
-	error_xcb =
-		xcb_request_check(
-			backend->conn,
-			cookie);
-
-	if (error_xcb != NULL)
+	if (ok == 0)
 	{
-		willis_error_throw(context, error, WILLIS_ERROR_WIN_XFIXES_SHOW);
+		willis_error_throw(context, error, WILLIS_ERROR_WIN_WINDOW_CURSOR_UNCLIP);
 		return false;
 	}
 
-	// select events
-	win_helpers_select_events_cursor(
-		context,
-		0,
-		error);
-
-	if (willis_error_get_code(error) != WILLIS_ERROR_OK)
-	{
-		return false;
-	}
+	// save grab status
+	ShowCursor(TRUE);
+	backend->mouse_grabbed = false;
 
 	// error always set
 	return true;
@@ -469,13 +432,6 @@ void willis_win_stop(
 	struct willis_error_info* error)
 {
 	struct win_backend* backend = context->backend_data;
-	struct willis_xkb* xkb_common = backend->xkb_common;
-
-	xkb_state_unref(xkb_common->state);
-	xkb_keymap_unref(xkb_common->keymap);
-	xkb_compose_table_unref(xkb_common->compose_table);
-	xkb_compose_state_unref(xkb_common->compose_state);
-	xkb_context_unref(xkb_common->context);
 
 	willis_error_ok(error);
 }
@@ -485,9 +441,7 @@ void willis_win_clean(
 	struct willis_error_info* error)
 {
 	struct win_backend* backend = context->backend_data;
-	struct willis_xkb* xkb_common = backend->xkb_common;
 
-	free(xkb_common);
 	free(backend);
 
 	willis_error_ok(error);

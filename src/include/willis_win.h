@@ -2,6 +2,7 @@
 #define H_WILLIS_WIN
 
 #include "willis.h"
+#include <windows.h>
 
 struct willis_win_data
 {

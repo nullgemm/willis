@@ -16,7 +16,7 @@ if [ -z "$build_type" ]; then
 fi
 
 if [ -z "$build_backend" ]; then
-	build_backend=appkit
+	build_backend=win
 fi
 
 if [ -z "$build_toolchain" ]; then

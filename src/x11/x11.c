@@ -230,6 +230,20 @@ void willis_x11_handle_event(
 			event_code = x11_helpers_translate_button(button_press->detail);
 			event_state = WILLIS_STATE_PRESS;
 
+			switch (event_code)
+			{
+				case WILLIS_MOUSE_WHEEL_UP:
+				case WILLIS_MOUSE_WHEEL_DOWN:
+				{
+					event_info->mouse_wheel_steps = 1;
+					break;
+				}
+				default:
+				{
+					break;
+				}
+			}
+
 			break;
 		}
 		case XCB_BUTTON_RELEASE:
@@ -239,6 +253,20 @@ void willis_x11_handle_event(
 
 			event_code = x11_helpers_translate_button(button_release->detail);
 			event_state = WILLIS_STATE_RELEASE;
+
+			switch (event_code)
+			{
+				case WILLIS_MOUSE_WHEEL_UP:
+				case WILLIS_MOUSE_WHEEL_DOWN:
+				{
+					event_info->mouse_wheel_steps = 1;
+					break;
+				}
+				default:
+				{
+					break;
+				}
+			}
 
 			break;
 		}

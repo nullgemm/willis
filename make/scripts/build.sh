@@ -37,6 +37,12 @@ case $build_backend in
 		./make/lib/appkit.sh $build_type $build_toolchain
 	;;
 
+	win)
+		rm -rf build make/output
+		./make/lib/pe.sh $build_type
+		./make/lib/win.sh $build_type
+	;;
+
 	*)
 		echo "invalid backend: $build_backend"
 		exit 1
@@ -59,6 +65,14 @@ case $build_backend in
 
 		samu -f ./make/output/lib_macho.ninja headers
 		samu -f ./make/output/lib_appkit.ninja headers
+	;;
+
+	win)
+		samu -f ./make/output/lib_pe.ninja
+		samu -f ./make/output/lib_win.ninja
+
+		samu -f ./make/output/lib_pe.ninja headers
+		samu -f ./make/output/lib_win.ninja headers
 	;;
 
 	*)

@@ -6,8 +6,7 @@
 
 struct willis_win_data
 {
-	HWND win;
-	HDC device_context;
+	void* data;
 };
 
 void willis_prepare_init_win(

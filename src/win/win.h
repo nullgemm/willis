@@ -10,8 +10,6 @@
 
 struct win_backend
 {
-	HWND win;
-	HDC device_context;
 	bool mouse_grabbed;
 };
 

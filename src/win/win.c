@@ -47,8 +47,6 @@ void willis_win_start(
 	struct win_backend* backend = context->backend_data;
 	struct willis_win_data* window_data = data;
 
-	backend->win = window_data->win;
-	backend->device_context = window_data->device_context;
 	backend->mouse_grabbed = false;
 
 	willis_error_ok(error);

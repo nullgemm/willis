@@ -37,3 +37,18 @@ jobs:
           run:
             path: /bin/bash
             args: ["--login", "/Users/nullgemm/Documents/concourse/bin/willis_scripts_appkit_native/build.sh"]
+  - name: willis_build_win_mingw
+    plan:
+      - task: willis_build_win_mingw_task
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: docker_registry:443/nullgemm/willis_image_win_mingw
+              ca_certs: ((docker_registry_certs))
+              tag: latest
+          params:
+            GIT_REPO_URL: willis_image_win_mingw
+          run:
+            path: /scripts/build_win.sh

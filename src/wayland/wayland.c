@@ -112,24 +112,6 @@ void willis_wayland_start(
 	// get the best locale setting available
 	willis_xkb_init_locale(backend->xkb_common);
 
-	// init the xkb Wayland extension
-	int error_posix =
-		xkb_wayland_setup_xkb_extension(
-			backend->conn,
-			XKB_WAYLAND_MIN_MAJOR_XKB_VERSION,
-			XKB_WAYLAND_MIN_MINOR_XKB_VERSION,
-			XKB_WAYLAND_SETUP_XKB_EXTENSION_NO_FLAGS,
-			NULL,
-			NULL,
-			&(backend->xkb_event),
-			NULL);
-
-	if (error_posix == 0)
-	{
-		willis_error_throw(context, error, WILLIS_ERROR_WAYLAND_XKB_SETUP);
-		return;
-	}
-
 	// create the xkb context
 	backend->xkb_common->context =
 		xkb_context_new(
@@ -143,31 +125,6 @@ void willis_wayland_start(
 
 	// prepare composition handling with xkb
 	willis_xkb_init_compose(backend->xkb_common);
-
-	// get the xkb device id
-	backend->xkb_device_id =
-		xkb_wayland_get_core_keyboard_device_id(
-			backend->conn);
-
-	if (backend->xkb_device_id == -1)
-	{
-		xkb_compose_state_unref(backend->xkb_common->compose_state); // ok to unref if NULL
-		xkb_compose_table_unref(backend->xkb_common->compose_table); // ok to unref if NULL
-		xkb_context_unref(backend->xkb_common->context);
-		willis_error_throw(context, error, WILLIS_ERROR_WAYLAND_XKB_DEVICE_GET);
-		return;
-	}
-
-	// update the xkb keymap
-	wayland_helpers_update_keymap(context, error);
-
-	if (willis_error_get_code(error) != WILLIS_ERROR_OK)
-	{
-		xkb_compose_state_unref(backend->xkb_common->compose_state);
-		xkb_compose_table_unref(backend->xkb_common->compose_table);
-		xkb_context_unref(backend->xkb_common->context);
-		return;
-	}
 
 	// add our registry handler callback
 	window_data->add_registry_handler(

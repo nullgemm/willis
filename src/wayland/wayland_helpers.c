@@ -471,6 +471,13 @@ void willis_wayland_helpers_listener_keyboard_enter(
 				&(backend->event_info.utf8_string),
 				&(backend->event_info.utf8_size),
 				&error);
+
+			if (willis_error_get_code(&error) == WILLIS_ERROR_OK)
+			{
+				backend->event_callback(
+					backend->event_callback_data,
+					&(backend->event_serial));
+			}
 		}
 	}
 	else
@@ -487,12 +494,14 @@ void willis_wayland_helpers_listener_keyboard_enter(
 				&(backend->event_info.utf8_string),
 				&(backend->event_info.utf8_size),
 				&error);
-		}
-	}
 
-	if (willis_error_get_code(&error) == WILLIS_ERROR_OK)
-	{
-		backend->event_callback(backend->event_callback_data, &(backend->event_serial));
+			if (willis_error_get_code(&error) == WILLIS_ERROR_OK)
+			{
+				backend->event_callback(
+					backend->event_callback_data,
+					&(backend->event_serial));
+			}
+		}
 	}
 }
 

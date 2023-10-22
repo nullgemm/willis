@@ -169,19 +169,6 @@ void willis_wayland_start(
 		return;
 	}
 
-	// select xkb events
-	wayland_helpers_select_events_keyboard(context, error);
-
-	if (willis_error_get_code(error) != WILLIS_ERROR_OK)
-	{
-		xkb_state_unref(backend->xkb_common->state);
-		xkb_keymap_unref(backend->xkb_common->keymap);
-		xkb_compose_state_unref(backend->xkb_common->compose_state);
-		xkb_compose_table_unref(backend->xkb_common->compose_table);
-		xkb_context_unref(backend->xkb_common->context);
-		return;
-	}
-
 	// add our registry handler callback
 	window_data->add_registry_handler(
 		window_data->add_registry_handler_data,
@@ -539,86 +526,6 @@ bool willis_wayland_mouse_grab(
 	backend->mouse_grabbed = true;
 	willis_error_ok(error);
 	return true;
-#if 0
-	// check xfixes supports what we are about to attempt
-	xcb_generic_error_t* error_xcb = NULL;
-
-	xcb_xfixes_query_version_cookie_t xfixes_version_cookie =
-		xcb_xfixes_query_version(
-			backend->conn,
-			4,
-			0);
-	
-	xcb_xfixes_query_version_reply_t* xfixes_version_reply =
-		xcb_xfixes_query_version_reply(
-			backend->conn,
-			xfixes_version_cookie,
-			&error_xcb);
-
-	if (error_xcb != NULL)
-	{
-		willis_error_throw(context, error, WILLIS_ERROR_WAYLAND_XFIXES_VERSION);
-		return false;
-	}
-
-	free(xfixes_version_reply);
-
-	// hide the cursor just in case
-	xcb_void_cookie_t xfixes_hide_cookie =
-		xcb_xfixes_hide_cursor(
-			backend->conn,
-			backend->window);
-
-	error_xcb =
-		xcb_request_check(
-			backend->conn,
-			xfixes_hide_cookie);
-
-	if (error_xcb != NULL)
-	{
-		willis_error_throw(context, error, WILLIS_ERROR_WAYLAND_XFIXES_HIDE);
-		return false;
-	}
-
-	// grab the pointer
-	xcb_grab_pointer_cookie_t pointer_cookie =
-		xcb_grab_pointer(
-			backend->conn,
-			true,
-			backend->root,
-			XCB_NONE,
-			XCB_GRAB_MODE_ASYNC,
-			XCB_GRAB_MODE_ASYNC,
-			backend->window,
-			XCB_CURSOR_NONE, // TODO use invisible cursor
-			XCB_CURRENT_TIME);
-
-	xcb_grab_pointer_reply_t* pointer_reply =
-		xcb_grab_pointer_reply(
-			backend->conn,
-			pointer_cookie,
-			&error_xcb);
-
-	if (error_xcb != NULL)
-	{
-		willis_error_throw(context, error, WILLIS_ERROR_WAYLAND_GRAB);
-		return false;
-	}
-
-	// select events
-	wayland_helpers_select_events_cursor(
-		context,
-		XCB_INPUT_XI_EVENT_MASK_RAW_MOTION,
-		error);
-
-	if (willis_error_get_code(error) != WILLIS_ERROR_OK)
-	{
-		return false;
-	}
-
-	// error always set
-	return true;
-#endif
 }
 
 bool willis_wayland_mouse_ungrab(
@@ -665,56 +572,6 @@ bool willis_wayland_mouse_ungrab(
 	backend->mouse_grabbed = false;
 	willis_error_ok(error);
 	return true;
-
-#if 0
-	// ungrab the pointer
-	cookie =
-		xcb_ungrab_pointer(
-			backend->conn,
-			XCB_CURRENT_TIME);
-
-	error_xcb =
-		xcb_request_check(
-			backend->conn,
-			cookie);
-
-	if (error_xcb != NULL)
-	{
-		willis_error_throw(context, error, WILLIS_ERROR_WAYLAND_UNGRAB);
-		return false;
-	}
-
-	// show the cursor back
-	cookie =
-		xcb_xfixes_show_cursor(
-			backend->conn,
-			backend->window);
-
-	error_xcb =
-		xcb_request_check(
-			backend->conn,
-			cookie);
-
-	if (error_xcb != NULL)
-	{
-		willis_error_throw(context, error, WILLIS_ERROR_WAYLAND_XFIXES_SHOW);
-		return false;
-	}
-
-	// select events
-	wayland_helpers_select_events_cursor(
-		context,
-		0,
-		error);
-
-	if (willis_error_get_code(error) != WILLIS_ERROR_OK)
-	{
-		return false;
-	}
-
-	// error always set
-	return true;
-#endif
 }
 
 void willis_wayland_stop(

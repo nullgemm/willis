@@ -34,6 +34,7 @@ flags+=("-Wno-unused-parameter")
 flags+=("-Wno-unused-variable")
 flags+=("-Isrc")
 flags+=("-Isrc/include")
+flags+=("-Ires/wayland_headers")
 flags+=("-fPIC")
 flags+=("-fdiagnostics-color=always")
 

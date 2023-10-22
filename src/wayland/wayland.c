@@ -358,6 +358,36 @@ void willis_wayland_stop(
 	struct wayland_backend* backend = context->backend_data;
 	struct willis_xkb* xkb_common = backend->xkb_common;
 
+	if (backend->keyboard != NULL)
+	{
+		wl_keyboard_release(backend->keyboard);
+	}
+
+	if (backend->pointer != NULL)
+	{
+		wl_pointer_release(backend->pointer);
+	}
+
+	if (backend->pointer_relative_manager != NULL)
+	{
+		zwp_relative_pointer_manager_v1_destroy(backend->pointer_relative_manager);
+	}
+
+	if (backend->pointer_constraints_manager != NULL)
+	{
+		zwp_pointer_constraints_v1_destroy(backend->pointer_constraints_manager);
+	}
+
+	if (backend->pointer_relative != NULL)
+	{
+		zwp_relative_pointer_v1_destroy(backend->pointer_relative);
+	}
+
+	if (backend->pointer_locked != NULL)
+	{
+		zwp_locked_pointer_v1_destroy(backend->pointer_locked);
+	}
+
 	xkb_state_unref(xkb_common->state);
 	xkb_keymap_unref(xkb_common->keymap);
 	xkb_compose_table_unref(xkb_common->compose_table);

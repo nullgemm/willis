@@ -15,11 +15,27 @@ struct wayland_backend
 {
 	bool mouse_grabbed;
 	struct willis_xkb* xkb_common;
-	int32_t xkb_device_id;
-	uint8_t xkb_event;
 
+	// event storage
 	uint32_t event_serial;
-	struct willis_event_info* event_info;
+	struct willis_event_info event_info;
+
+	// event callback
+	void (*event_callback)(
+		void* data,
+		void* event);
+	void* event_callback_data;
+
+	// core structures
+	struct wl_pointer* pointer;
+	struct wl_keyboard* keyboard;
+	struct wl_surface* pointer_surface;
+
+	// pointer structures
+	struct zwp_relative_pointer_v1* pointer_relative;
+	struct zwp_locked_pointer_v1* pointer_locked;
+	struct zwp_relative_pointer_manager_v1* pointer_relative_manager;
+	struct zwp_pointer_constraints_v1* pointer_constraints_manager;
 
 	// listeners
 	struct wl_pointer_listener listener_pointer;

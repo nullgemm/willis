@@ -50,15 +50,15 @@ void willis_wayland_init(
 	// mouse pointer listener
 	struct wl_pointer_listener listener_pointer =
 	{
-		.enter = wayland_helpers_listener_pointer_enter,
-		.leave = wayland_helpers_listener_pointer_leave,
-		.motion = wayland_helpers_listener_pointer_motion,
-		.button = wayland_helpers_listener_pointer_button,
-		.axis = wayland_helpers_listener_pointer_axis,
-		.frame = wayland_helpers_listener_pointer_frame,
-		.axis_source = wayland_helpers_listener_pointer_axis_source,
-		.axis_stop = wayland_helpers_listener_pointer_axis_stop,
-		.axis_discrete = wayland_helpers_listener_pointer_axis_discrete,
+		.enter = willis_wayland_helpers_listener_pointer_enter,
+		.leave = willis_wayland_helpers_listener_pointer_leave,
+		.motion = willis_wayland_helpers_listener_pointer_motion,
+		.button = willis_wayland_helpers_listener_pointer_button,
+		.axis = willis_wayland_helpers_listener_pointer_axis,
+		.frame = willis_wayland_helpers_listener_pointer_frame,
+		.axis_source = willis_wayland_helpers_listener_pointer_axis_source,
+		.axis_stop = willis_wayland_helpers_listener_pointer_axis_stop,
+		.axis_discrete = willis_wayland_helpers_listener_pointer_axis_discrete,
 	};
 
 	backend->listener_pointer = listener_pointer;
@@ -66,12 +66,12 @@ void willis_wayland_init(
 	// keyboard listener
 	struct wl_keyboard_listener listener_keyboard =
 	{
-		.keymap = wayland_helpers_listener_keyboard_keymap,
-		.enter = wayland_helpers_listener_keyboard_enter,
-		.leave = wayland_helpers_listener_keyboard_leave,
-		.key = wayland_helpers_listener_keyboard_key,
-		.modifiers = wayland_helpers_listener_keyboard_modifiers,
-		.repeat_info = wayland_helpers_listener_keyboard_repeat_info,
+		.keymap = willis_wayland_helpers_listener_keyboard_keymap,
+		.enter = willis_wayland_helpers_listener_keyboard_enter,
+		.leave = willis_wayland_helpers_listener_keyboard_leave,
+		.key = willis_wayland_helpers_listener_keyboard_key,
+		.modifiers = willis_wayland_helpers_listener_keyboard_modifiers,
+		.repeat_info = willis_wayland_helpers_listener_keyboard_repeat_info,
 	};
 
 	backend->listener_keyboard = listener_keyboard;
@@ -79,7 +79,7 @@ void willis_wayland_init(
 	// relative mouse pointer listener
 	struct zwp_relative_pointer_v1_listener listener_pointer_relative =
 	{
-		.relative_motion = wayland_helpers_listener_pointer_relative,
+		.relative_motion = willis_wayland_helpers_listener_pointer_relative,
 	};
 
 	backend->listener_pointer_relative = listener_pointer_relative;
@@ -87,8 +87,8 @@ void willis_wayland_init(
 	// locked mouse pointer listener
 	struct zwp_locked_pointer_v1_listener listener_pointer_locked =
 	{
-		.locked = wayland_helpers_listener_pointer_locked,
-		.unlocked = wayland_helpers_listener_pointer_unlocked,
+		.locked = willis_wayland_helpers_listener_pointer_locked,
+		.unlocked = willis_wayland_helpers_listener_pointer_unlocked,
 	};
 
 	backend->listener_pointer_locked = listener_pointer_locked;
@@ -106,8 +106,8 @@ void willis_wayland_start(
 	struct willis_wayland_data* window_data = data;
 
 	backend->mouse_grabbed = false;
-	backend->xkb_device_id = 0;
-	backend->xkb_event = 0;
+	backend->event_callback = window_data->event_callback;
+	backend->event_callback_data = window_data->event_callback_data;
 
 	// get the best locale setting available
 	willis_xkb_init_locale(backend->xkb_common);

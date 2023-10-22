@@ -77,6 +77,31 @@ void willis_error_init(
 		"couldn't get win32 window raw mouse movement info";
 	log[WILLIS_ERROR_WIN_ACTIVE_GET] =
 		"couldn't get a win32 active window handle";
+
+	log[WILLIS_ERROR_WAYLAND_REQUEST] =
+		"could not perform Wayland request";
+	log[WILLIS_ERROR_WAYLAND_LISTENER_ADD] =
+		"could not add Wayland listener";
+	log[WILLIS_ERROR_WAYLAND_POINTER_MISSING] =
+		"could not register Wayland mouse pointer";
+	log[WILLIS_ERROR_WAYLAND_POINTER_SURFACE_MISSING] =
+		"could not register Wayland mouse pointer surface";
+	log[WILLIS_ERROR_WAYLAND_POINTER_RELATIVE_MANAGER_MISSING] =
+		"could not register Wayland relative mouse pointer manager";
+	log[WILLIS_ERROR_WAYLAND_POINTER_CONSTRAINTS_MANAGER_MISSING] =
+		"could not register Wayland locked mouse pointer manager";
+	log[WILLIS_ERROR_WAYLAND_POINTER_RELATIVE_MISSING] =
+		"could not register Wayland relative mouse pointer";
+	log[WILLIS_ERROR_WAYLAND_POINTER_LOCKED_MISSING] =
+		"could not register Wayland locked mouse pointer";
+	log[WILLIS_ERROR_WAYLAND_POINTER_RELATIVE_GET] =
+		"could not get Wayland relative mouse pointer";
+	log[WILLIS_ERROR_WAYLAND_POINTER_LOCKED_GET] =
+		"could not get Wayland locked mouse pointer";
+	log[WILLIS_ERROR_WAYLAND_POINTER_GET] =
+		"could not get Wayland mouse pointer";
+	log[WILLIS_ERROR_WAYLAND_KEYBOARD_GET] =
+		"could not get Wayland keyboard";
 #endif
 }
 

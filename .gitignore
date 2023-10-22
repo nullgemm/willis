@@ -3,6 +3,7 @@ make/output
 willis_bin_*
 infer_*
 res/infer
+res/wayland_headers
 valgrind.log
 drmemory.log
 log

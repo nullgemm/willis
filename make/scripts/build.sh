@@ -16,7 +16,7 @@ if [ -z "$build_type" ]; then
 fi
 
 if [ -z "$build_backend" ]; then
-	build_backend=win
+	build_backend=wayland
 fi
 
 if [ -z "$build_toolchain" ]; then
@@ -41,6 +41,12 @@ case $build_backend in
 		rm -rf build make/output
 		./make/lib/pe.sh $build_type
 		./make/lib/win.sh $build_type
+	;;
+
+	wayland)
+		rm -rf build make/output
+		./make/lib/elf.sh $build_type
+		./make/lib/wayland.sh $build_type
 	;;
 
 	*)
@@ -73,6 +79,14 @@ case $build_backend in
 
 		ninja -f ./make/output/lib_pe.ninja headers
 		ninja -f ./make/output/lib_win.ninja headers
+	;;
+
+	wayland)
+		samu -f ./make/output/lib_elf.ninja
+		samu -f ./make/output/lib_wayland.ninja
+
+		samu -f ./make/output/lib_elf.ninja headers
+		samu -f ./make/output/lib_wayland.ninja headers
 	;;
 
 	*)

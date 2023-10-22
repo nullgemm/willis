@@ -18,9 +18,9 @@ output="make/output"
 folder_ninja="build"
 folder_objects="\$builddir/obj"
 folder_willis="willis_bin_$tag"
-folder_library="\$folder_willis/lib/willis"
+folder_library="\$folder_willis/lib/willis/wayland"
 folder_include="\$folder_willis/include"
-name="willis_elf"
+name="willis_wayland"
 cc="gcc"
 ar="ar"
 
@@ -31,9 +31,11 @@ flags+=("-Wformat")
 flags+=("-Wformat-security")
 flags+=("-Wno-address-of-packed-member")
 flags+=("-Wno-unused-parameter")
+flags+=("-Wno-unused-variable")
 flags+=("-Isrc")
 flags+=("-Isrc/include")
 flags+=("-fPIC")
+flags+=("-fdiagnostics-color=always")
 
 #defines+=("-DWILLIS_ERROR_ABORT")
 #defines+=("-DWILLIS_ERROR_SKIP")
@@ -101,6 +103,7 @@ flags+=("-fno-optimize-sibling-calls")
 
 flags+=("-fsanitize=thread")
 flags+=("-fsanitize-recover=all")
+defines+=("-DWILLIS_ERROR_LOG_THROW")
 	;;
 
 	*)
@@ -109,11 +112,10 @@ exit 1
 	;;
 esac
 
-# common willis lib for elf executables
-ninja_file=lib_elf.ninja
-src+=("src/common/willis.c")
-src+=("src/common/willis_error.c")
-src+=("src/nix/nix.c")
+# backend
+ninja_file=lib_wayland.ninja
+src+=("src/wayland/wayland.c")
+src+=("src/wayland/wayland_helpers.c")
 
 # default target
 default+=("\$folder_library/\$name.a")
@@ -182,7 +184,7 @@ echo ""; \
 
 { \
 echo "rule generator"; \
-echo "    command = make/lib/elf.sh $build"; \
+echo "    command = make/lib/wayland.sh $build"; \
 echo "    description = re-generating the ninja build file"; \
 echo ""; \
 } >> "$output/$ninja_file"
@@ -191,14 +193,14 @@ echo ""; \
 ## copy headers
 { \
 echo "# copy headers"; \
-echo "build \$folder_include/willis.h: \$"; \
-echo "cp src/include/willis.h"; \
+echo "build \$folder_include/willis_wayland.h: \$"; \
+echo "cp src/include/willis_wayland.h"; \
 echo ""; \
 } >> "$output/$ninja_file"
 
 { \
 echo "build headers: phony \$"; \
-echo "\$folder_include/willis.h \$"; \
+echo "\$folder_include/willis_wayland.h"; \
 echo ""; \
 } >> "$output/$ninja_file"
 

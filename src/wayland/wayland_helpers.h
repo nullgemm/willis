@@ -21,6 +21,10 @@ void willis_wayland_helpers_capabilities_handler(
 	struct wl_seat* seat,
 	uint32_t capabilities);
 
+// event info reset
+void willis_wayland_reset_event_info(
+	struct willis* context);
+
 // mouse coordinates format conversion
 void willis_wayland_helpers_mouse(
 	struct willis* context,

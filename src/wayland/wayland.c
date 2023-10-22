@@ -109,6 +109,9 @@ void willis_wayland_start(
 	backend->event_callback = window_data->event_callback;
 	backend->event_callback_data = window_data->event_callback_data;
 
+	// initialize the event info data
+	willis_wayland_reset_event_info(context);
+
 	// get the best locale setting available
 	willis_xkb_init_locale(backend->xkb_common);
 
@@ -160,193 +163,10 @@ void willis_wayland_handle_event(
 	if (*serial == backend->event_serial)
 	{
 		*event_info = backend->event_info;
+		willis_wayland_reset_event_info(context);
 	}
 
 	willis_error_ok(error);
-
-#if 0
-	// initialize event code and state to default values
-	enum willis_event_code event_code = WILLIS_NONE;
-	enum willis_event_state event_state = WILLIS_STATE_NONE;
-
-	// initialize here to make the switch below more readable
-	willis_error_ok(error);
-	event_info->event_code = event_code;
-	event_info->event_state = event_state;
-	event_info->utf8_string = NULL;
-	event_info->utf8_size = 0;
-	event_info->mouse_x = 0;
-	event_info->mouse_y = 0;
-	event_info->diff_x = 0;
-	event_info->diff_y = 0;
-
-	// handle event
-	xcb_generic_event_t* xcb_event = event;
-	int code = xcb_event->response_type & ~0x80;
-
-	switch (code)
-	{
-		case XCB_KEY_PRESS:
-		{
-			xcb_key_press_event_t* key_press =
-				(xcb_key_press_event_t*) event;
-
-			event_code = willis_xkb_translate_keycode(key_press->detail);
-			event_state = WILLIS_STATE_PRESS;
-
-			// use compose functions if available
-			if (xkb_common->compose_state != NULL)
-			{
-				willis_xkb_utf8_compose(
-					context,
-					xkb_common,
-					(xkb_keycode_t) key_press->detail,
-					&(event_info->utf8_string),
-					&(event_info->utf8_size),
-					error);
-			}
-			// use simple keycode translation otherwise
-			else
-			{
-				willis_xkb_utf8_simple(
-					context,
-					xkb_common,
-					(xkb_keycode_t) key_press->detail,
-					&(event_info->utf8_string),
-					&(event_info->utf8_size),
-					error);
-			}
-
-			break;
-		}
-		case XCB_KEY_RELEASE:
-		{
-			xcb_key_release_event_t* key_release =
-				(xcb_key_release_event_t*) event;
-
-			event_code = willis_xkb_translate_keycode(key_release->detail);
-			event_state = WILLIS_STATE_RELEASE;
-
-			break;
-		}
-		case XCB_BUTTON_PRESS:
-		{
-			xcb_button_press_event_t* button_press =
-				(xcb_button_press_event_t*) event;
-
-			event_code = wayland_helpers_translate_button(button_press->detail);
-			event_state = WILLIS_STATE_PRESS;
-
-			switch (event_code)
-			{
-				case WILLIS_MOUSE_WHEEL_UP:
-				case WILLIS_MOUSE_WHEEL_DOWN:
-				{
-					event_info->mouse_wheel_steps = 1;
-					break;
-				}
-				default:
-				{
-					break;
-				}
-			}
-
-			break;
-		}
-		case XCB_BUTTON_RELEASE:
-		{
-			xcb_button_release_event_t* button_release =
-				(xcb_button_release_event_t*) event;
-
-			event_code = wayland_helpers_translate_button(button_release->detail);
-			event_state = WILLIS_STATE_RELEASE;
-
-			switch (event_code)
-			{
-				case WILLIS_MOUSE_WHEEL_UP:
-				case WILLIS_MOUSE_WHEEL_DOWN:
-				{
-					event_info->mouse_wheel_steps = 1;
-					break;
-				}
-				default:
-				{
-					break;
-				}
-			}
-
-			break;
-		}
-		case XCB_MOTION_NOTIFY:
-		{
-			xcb_motion_notify_event_t* motion =
-				(xcb_motion_notify_event_t*) event;
-
-			event_code = WILLIS_MOUSE_MOTION;
-			event_state = WILLIS_STATE_NONE;
-
-			event_info->mouse_x = motion->event_x;
-			event_info->mouse_y = motion->event_y;
-
-			break;
-		}
-		case XCB_GE_GENERIC:
-		{
-			xcb_ge_generic_event_t* generic =
-				(xcb_ge_generic_event_t*) event;
-
-			if (generic->event_type != XCB_INPUT_RAW_MOTION)
-			{
-				break;
-			}
-
-			xcb_input_raw_motion_event_t* raw
-				= (xcb_input_raw_motion_event_t*) event;
-
-			int len =
-				xcb_input_raw_button_press_axisvalues_length(raw);
-
-			xcb_input_fp3232_t* axis =
-				xcb_input_raw_button_press_axisvalues_raw(raw);
-
-			xcb_input_fp3232_t value;
-
-			if (len > 0)
-			{
-				value = axis[0];
-				event_info->diff_x = (((int64_t) value.integral) << 32) | value.frac;
-			}
-
-			if (len > 1)
-			{
-				value = axis[1];
-				event_info->diff_y = (((int64_t) value.integral) << 32) | value.frac;
-			}
-
-			event_code = WILLIS_MOUSE_MOTION;
-			event_state = WILLIS_STATE_NONE;
-
-			break;
-		}
-		default:
-		{
-			if (code == backend->xkb_event)
-			{
-				wayland_helpers_handle_xkb(
-					context,
-					event,
-					error);
-			}
-
-			break;
-		}
-	}
-
-	event_info->event_code = event_code;
-	event_info->event_state = event_state;
-
-	// error always set
-#endif
 }
 
 bool willis_wayland_mouse_grab(

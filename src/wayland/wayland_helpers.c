@@ -164,6 +164,28 @@ void willis_wayland_helpers_capabilities_handler(
 	}
 }
 
+// event info reset
+void willis_wayland_reset_event_info(
+	struct willis* context)
+{
+	struct wayland_backend* backend = context->backend_data;
+
+	struct willis_event_info event_info =
+	{
+		.event_code = WILLIS_NONE,
+		.event_state = WILLIS_STATE_NONE,
+		.utf8_string = NULL,
+		.utf8_size = 0,
+		.mouse_wheel_steps = 0,
+		.mouse_x = 0,
+		.mouse_y = 0,
+		.diff_x = 0,
+		.diff_y = 0,
+	};
+
+	backend->event_info = event_info;
+}
+
 // mouse coordinates format conversion
 void willis_wayland_helpers_mouse(
 	struct willis* context,

@@ -1,7 +1,7 @@
 # Willis
 Willis is a portable keyboard and mouse input library for X11, Wayland, Windows
 and macOS. It is lightweight and self-contained, making it suitable for use
-with custom windowing code or low-level abstractions libraries like
+with custom windowing code or low-level abstraction libraries like
 [Globox](https://github.com/nullgemm/globox).
 
 ## Features
@@ -167,7 +167,7 @@ This backend's initialization data must include the following XCB structures:
  - The XCB root window
  - The XCB window
 
-Forward XCB events to `willis_handle_events`
+Forward XCB events to `willis_handle_event`
 
 ### Wayland
 This backend's initialization data must include the following callbacks:
@@ -188,7 +188,7 @@ depending on how the rest of your code is organized.
 
 ### Windows and macOS
 No initialization data is required under Windows and macOS, just configure the
-library in a generic way and forward system events to `willis_handle_events`.
+library in a generic way and forward system events to `willis_handle_event`.
 
 ## Library usage
 ### Setting it up
@@ -241,7 +241,7 @@ willis_clean(willis, &error);
 Get event info passing the system's event:
 ```
 struct willis_event_info info = {0};
-willis_handle_event(willis, event, &info, error); 
+willis_handle_event(willis, event, &info, &error);
 ```
 
 Grab/Ungrab the mouse:

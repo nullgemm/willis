@@ -10,10 +10,10 @@ Lightweight does not always mean basic, and Willis supports advanced features:
    "Pause" which were disabled since they are not available on macOS.
  - Events identify the physical location of the key that was pressed, they are
    just named after the corresponding QWERTY labels as a convention.
- - Advanced text composition and layout switching are still taken care of on
+ - Advanced text composition and layout switching are taken care of on
    all platforms, with composed input always being reported in UTF-8.
- - Relative mouse movements are reported while the mouse is captured, using
-   actual relative movement data from the input device.
+ - Relative mouse movements are reported while the mouse is captured,
+   using actual relative movement data from the input device.
 
 ## Building
 The build system for Willis consists in bash scripts generating ninja scripts.
@@ -21,7 +21,7 @@ The first step is to generate the ninja script; then, this ninja script must
 be ran to build the actual binary.
 
 ### General steps for the library
-You will usually need 2 modules to be able to use one of Willis' backend:
+You will need 2 modules to be able to use one of Willis' backend:
  - The Willis core, providing code common across platforms.
    This is what implements the main interface of the library,
    to which you will bind the backend of your choice at run time.
@@ -252,8 +252,8 @@ willis_mouse_ungrab(willis, &error);
 
 Get debug info:
 ```
-willis_get_event_code_name(willis, info.event_code, &error);
-willis_get_event_state_name(willis, info.event_state, &error);
+const char* code_name = willis_get_event_code_name(willis, info.event_code, &error);
+const char* state_name = willis_get_event_state_name(willis, info.event_state, &error);
 willis_error_get_code(&error);
 willis_error_log(willis, &error);
 ```

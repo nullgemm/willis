@@ -1,0 +1,10 @@
+willis_win_init
+willis_win_start
+willis_win_handle_event
+willis_win_get_event_code_name
+willis_win_get_event_state_name
+willis_win_mouse_grab
+willis_win_mouse_ungrab
+willis_win_stop
+willis_win_clean
+willis_prepare_init_win

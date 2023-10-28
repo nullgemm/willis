@@ -1,0 +1,10 @@
+willis_wayland_init
+willis_wayland_start
+willis_wayland_handle_event
+willis_wayland_get_event_code_name
+willis_wayland_get_event_state_name
+willis_wayland_mouse_grab
+willis_wayland_mouse_ungrab
+willis_wayland_stop
+willis_wayland_clean
+willis_prepare_init_wayland

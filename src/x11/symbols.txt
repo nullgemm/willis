@@ -1,10 +1,1 @@
-willis_x11_init
-willis_x11_start
-willis_x11_handle_event
-willis_x11_get_event_code_name
-willis_x11_get_event_state_name
-willis_x11_mouse_grab
-willis_x11_mouse_ungrab
-willis_x11_stop
-willis_x11_clean
 willis_prepare_init_x11

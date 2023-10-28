@@ -26,7 +26,7 @@ union i64_bits
 };
 
 // registry handler
-void willis_wayland_helpers_registry_handler(
+void wayland_helpers_registry_handler(
 	void* data,
 	struct wl_registry* registry,
 	uint32_t name,
@@ -77,7 +77,7 @@ void willis_wayland_helpers_registry_handler(
 }
 
 // capabilities handler
-void willis_wayland_helpers_capabilities_handler(
+void wayland_helpers_capabilities_handler(
 	void* data,
 	struct wl_seat* seat,
 	uint32_t capabilities)
@@ -187,7 +187,7 @@ void willis_wayland_reset_event_info(
 }
 
 // mouse coordinates format conversion
-void willis_wayland_helpers_mouse(
+void wayland_helpers_mouse(
 	struct willis* context,
 	wl_fixed_t x,
 	wl_fixed_t y)
@@ -200,7 +200,7 @@ void willis_wayland_helpers_mouse(
 }
 
 // pointer listeners
-void willis_wayland_helpers_listener_pointer_enter(
+void wayland_helpers_listener_pointer_enter(
 	void* data,
 	struct wl_pointer* pointer,
 	uint32_t serial,
@@ -214,12 +214,12 @@ void willis_wayland_helpers_listener_pointer_enter(
 	backend->event_serial = serial;
 	backend->pointer_surface = surface;
 
-	willis_wayland_helpers_mouse(data, surface_x, surface_y);
+	wayland_helpers_mouse(data, surface_x, surface_y);
 
 	backend->event_callback(backend->event_callback_data, &(backend->event_serial));
 }
 
-void willis_wayland_helpers_listener_pointer_leave(
+void wayland_helpers_listener_pointer_leave(
 	void* data,
 	struct wl_pointer* pointer,
 	uint32_t serial,
@@ -236,7 +236,7 @@ void willis_wayland_helpers_listener_pointer_leave(
 	}
 }
 
-void willis_wayland_helpers_listener_pointer_motion(
+void wayland_helpers_listener_pointer_motion(
 	void* data,
 	struct wl_pointer* pointer,
 	uint32_t time,
@@ -246,13 +246,13 @@ void willis_wayland_helpers_listener_pointer_motion(
 	struct willis* context = data;
 	struct wayland_backend* backend = context->backend_data;
 
-	willis_wayland_helpers_mouse(data, surface_x, surface_y);
+	wayland_helpers_mouse(data, surface_x, surface_y);
 
 	// use previous serial for this context since this event does not provide one
 	backend->event_callback(backend->event_callback_data, &(backend->event_serial));
 }
 
-void willis_wayland_helpers_listener_pointer_button(
+void wayland_helpers_listener_pointer_button(
 	void* data,
 	struct wl_pointer* pointer,
 	uint32_t serial,
@@ -306,7 +306,7 @@ void willis_wayland_helpers_listener_pointer_button(
 	backend->event_callback(backend->event_callback_data, &(backend->event_serial));
 }
 
-void willis_wayland_helpers_listener_pointer_axis_source(
+void wayland_helpers_listener_pointer_axis_source(
 	void* data,
 	struct wl_pointer* pointer,
 	uint32_t axis_source)
@@ -314,7 +314,7 @@ void willis_wayland_helpers_listener_pointer_axis_source(
 	// high-res axes are not supported by willis
 }
 
-void willis_wayland_helpers_listener_pointer_axis_stop(
+void wayland_helpers_listener_pointer_axis_stop(
 	void* data,
 	struct wl_pointer* pointer,
 	uint32_t time,
@@ -323,7 +323,7 @@ void willis_wayland_helpers_listener_pointer_axis_stop(
 	// high-res axes are not supported by willis
 }
 
-void willis_wayland_helpers_listener_pointer_axis_discrete(
+void wayland_helpers_listener_pointer_axis_discrete(
 	void* data,
 	struct wl_pointer* pointer,
 	uint32_t axis,
@@ -358,7 +358,7 @@ void willis_wayland_helpers_listener_pointer_axis_discrete(
 	}
 }
 
-void willis_wayland_helpers_listener_pointer_axis(
+void wayland_helpers_listener_pointer_axis(
 	void* data,
 	struct wl_pointer* pointer,
 	uint32_t time,
@@ -377,14 +377,14 @@ void willis_wayland_helpers_listener_pointer_axis(
 		discrete = -1;
 	}
 
-	willis_wayland_helpers_listener_pointer_axis_discrete(
+	wayland_helpers_listener_pointer_axis_discrete(
 		data,
 		pointer,
 		axis,
 		discrete);
 }
 
-void willis_wayland_helpers_listener_pointer_frame(
+void wayland_helpers_listener_pointer_frame(
 	void* data,
 	struct wl_pointer* pointer)
 {
@@ -393,7 +393,7 @@ void willis_wayland_helpers_listener_pointer_frame(
 }
 
 // keyboard listeners
-void willis_wayland_helpers_listener_keyboard_keymap(
+void wayland_helpers_listener_keyboard_keymap(
 	void* data,
 	struct wl_keyboard* keyboard,
 	uint32_t format,
@@ -463,7 +463,7 @@ void willis_wayland_helpers_listener_keyboard_keymap(
 	}
 }
 
-void willis_wayland_helpers_listener_keyboard_enter(
+void wayland_helpers_listener_keyboard_enter(
 	void* data,
 	struct wl_keyboard* keyboard,
 	uint32_t serial,
@@ -527,7 +527,7 @@ void willis_wayland_helpers_listener_keyboard_enter(
 	}
 }
 
-void willis_wayland_helpers_listener_keyboard_leave(
+void wayland_helpers_listener_keyboard_leave(
 	void* data,
 	struct wl_keyboard* keyboard,
 	uint32_t serial,
@@ -536,7 +536,7 @@ void willis_wayland_helpers_listener_keyboard_leave(
 	// not needed
 }
 
-void willis_wayland_helpers_listener_keyboard_key(
+void wayland_helpers_listener_keyboard_key(
 	void* data,
 	struct wl_keyboard* keyboard,
 	uint32_t serial,
@@ -591,7 +591,7 @@ void willis_wayland_helpers_listener_keyboard_key(
 	}
 }
 
-void willis_wayland_helpers_listener_keyboard_modifiers(
+void wayland_helpers_listener_keyboard_modifiers(
 	void* data,
 	struct wl_keyboard* keyboard,
 	uint32_t serial,
@@ -619,7 +619,7 @@ void willis_wayland_helpers_listener_keyboard_modifiers(
 	backend->event_callback(backend->event_callback_data, &(backend->event_serial));
 }
 
-void willis_wayland_helpers_listener_keyboard_repeat_info(
+void wayland_helpers_listener_keyboard_repeat_info(
 	void* data,
 	struct wl_keyboard* keyboard,
 	int32_t rate,
@@ -628,7 +628,7 @@ void willis_wayland_helpers_listener_keyboard_repeat_info(
 	// not needed
 }
 
-void willis_wayland_helpers_listener_pointer_relative(
+void wayland_helpers_listener_pointer_relative(
 	void* data,
 	struct zwp_relative_pointer_v1* pointer,
 	uint32_t time_msp,
@@ -654,14 +654,14 @@ void willis_wayland_helpers_listener_pointer_relative(
 	backend->event_callback(backend->event_callback_data, &(backend->event_serial));
 }
 
-void willis_wayland_helpers_listener_pointer_locked(
+void wayland_helpers_listener_pointer_locked(
 	void* data,
 	struct zwp_locked_pointer_v1* locked)
 {
 	// not needed
 }
 
-void willis_wayland_helpers_listener_pointer_unlocked(
+void wayland_helpers_listener_pointer_unlocked(
 	void* data,
 	struct zwp_locked_pointer_v1* locked)
 {

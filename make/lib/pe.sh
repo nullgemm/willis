@@ -24,9 +24,9 @@ folder_library="\$folder_willis/lib/willis"
 folder_include="\$folder_willis/include"
 name="willis_pe"
 cc="x86_64-w64-mingw32-gcc"
-ld="x86_64-w64-mingw32-ld"
+ld="ld"
 ar="x86_64-w64-mingw32-gcc-ar"
-objcopy="x86_64-w64-mingw32-objcopy"
+objcopy="objcopy"
 
 # compiler flags
 flags+=("-std=c99" "-pedantic")
@@ -164,14 +164,14 @@ echo -e "\n" >> "$output/$ninja_file"
 { \
 echo "# rules"; \
 echo "rule global"; \
-echo "    command = \$objcopy -D --globalize-symbols=src/common/symbols.txt \$in \$out"; \
+echo "    command = \$objcopy -D -F pe-x86-64 --globalize-symbols=src/common/symbols.txt \$in \$out"; \
 echo "    description = globalize \$out"; \
 echo ""; \
 } >> "$output/$ninja_file"
 
 { \
 echo "rule local"; \
-echo "    command = \$objcopy -w -L \"*\" \$in \$out"; \
+echo "    command = \$objcopy -F pe-x86-64 -w -L\"*\" \$in \$out"; \
 echo "    description = localize \$out"; \
 echo ""; \
 } >> "$output/$ninja_file"
@@ -185,7 +185,7 @@ echo ""; \
 
 { \
 echo "rule ld"; \
-echo "    command = \$ld -r \$in -o \$out"; \
+echo "    command = \$ld -r \$in --oformat=pe-x86-64 -o \$out"; \
 echo "    description = ld \$out"; \
 echo ""; \
 } >> "$output/$ninja_file"

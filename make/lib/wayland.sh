@@ -117,8 +117,11 @@ esac
 
 # backend
 ninja_file=lib_wayland.ninja
+src+=("src/nix/nix.c")
 src+=("src/wayland/wayland.c")
 src+=("src/wayland/wayland_helpers.c")
+src+=("res/wayland_headers/zwp-relative-pointer-protocol.c")
+src+=("res/wayland_headers/zwp-pointer-constraints-protocol.c")
 
 # default target
 default+=("\$folder_library/\$name.a")

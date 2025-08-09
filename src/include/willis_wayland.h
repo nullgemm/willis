@@ -5,7 +5,6 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <wayland-client.h>
 
 struct willis_wayland_data
 {
@@ -13,7 +12,7 @@ struct willis_wayland_data
 		void* data,
 		void (*capabilities_handler)(
 			void* data,
-			struct wl_seat* seat,
+			void* seat,
 			uint32_t capabilities),
 		void* capabilities_handler_data);
 
@@ -23,7 +22,7 @@ struct willis_wayland_data
 		void* data,
 		void (*registry_handler)(
 			void* data,
-			struct wl_registry* registry,
+			void* registry,
 			uint32_t name,
 			const char* interface,
 			uint32_t version),

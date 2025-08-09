@@ -115,7 +115,6 @@ esac
 ninja_file=lib_elf.ninja
 src+=("src/common/willis.c")
 src+=("src/common/willis_error.c")
-src+=("src/nix/nix.c")
 
 # default target
 default+=("\$folder_library/\$name.a")

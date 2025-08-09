@@ -116,6 +116,7 @@ esac
 
 # backend
 ninja_file=lib_x11.ninja
+src+=("src/nix/nix.c")
 src+=("src/x11/x11.c")
 src+=("src/x11/x11_helpers.c")
 

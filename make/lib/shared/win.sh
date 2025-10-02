@@ -13,8 +13,9 @@ folder_library="$folder_willis/lib/willis"
 mkdir -p "$folder_objects"
 
 # list link flags (order matters)
-#link+=("-lshcore")
-#link+=("-ldwmapi")
+link+=("-lshcore")
+link+=("-lgdi32")
+link+=("-ldwmapi")
 
 # list objs (order matters)
 obj+=("$folder_objects/willis_win.o")

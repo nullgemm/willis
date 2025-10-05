@@ -12,7 +12,9 @@ struct willis_x11_data
 	xcb_window_t root;
 };
 
+#if !defined(WILLIS_SHARED)
 void willis_prepare_init_x11(
 	struct willis_config_backend* config);
+#endif
 
 #endif

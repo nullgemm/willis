@@ -37,7 +37,9 @@ struct willis_wayland_data
 	void* event_callback_data;
 };
 
+#if !defined(WILLIS_SHARED)
 void willis_prepare_init_wayland(
 	struct willis_config_backend* config);
+#endif
 
 #endif
